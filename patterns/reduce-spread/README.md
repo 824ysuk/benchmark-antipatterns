@@ -1,4 +1,4 @@
-# 02. reduce + スプレッド
+# reduce + スプレッド
 
 **カテゴリ**: [計算量の無駄](../../docs/bottleneck-types.md#計算量の無駄)  
 **計算量の変化**: O(n²) → O(n)  

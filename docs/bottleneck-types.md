@@ -32,8 +32,9 @@
 
 ### 該当パターン
 
-- [01. ループ内 線形探索](../patterns/01-loop-linear-search/) — `find` をループ内で呼び O(n²)、Map 構築で O(n) に改善。改善比 **64×**（n=10,000）
-- [02. reduce + スプレッド](../patterns/02-reduce-spread/) — `reduce` 内スプレッドが O(n²)、直接変更で O(n) に。改善比 **1,044×**（n=1,000）
+- [ループ内 線形探索](../patterns/loop-linear-search/) — `find` をループ内で呼び O(n²)、Map 構築で O(n) に改善。改善比 **64×**（n=10,000）
+- [ループ内 includes → Set](../patterns/loop-includes-to-set/) — `includes` をループ内で呼び O(n²)、Set 構築で O(n) に改善。改善比 **42.6×**（n=10,000）
+- [reduce + スプレッド](../patterns/reduce-spread/) — `reduce` 内スプレッドが O(n²)、直接変更で O(n) に。改善比 **1,044×**（n=1,000）
 
 ### 一次情報
 
@@ -56,11 +57,11 @@
 | `for...of` ループ内の `await fetchX()` | `await Promise.all(ids.map(id => fetchX(id)))` |
 | `while (...) { await ... }` で独立した処理 | 同上 |
 
-直列が**正しい選択**な場面（`Promise.all` にしてはいけない）は [03. sequential await](../patterns/03-sequential-await/#注意例外) を参照してください（前の結果への依存・レート制限・順序依存）。
+直列が**正しい選択**な場面（`Promise.all` にしてはいけない）は [sequential await](../patterns/sequential-await/#注意例外) を参照してください（前の結果への依存・レート制限・順序依存）。
 
 ### 該当パターン
 
-- [03. sequential await](../patterns/03-sequential-await/) — O(n × latency) → O(max latency)。改善比 **75×**（n=100、latency=2ms）
+- [sequential await](../patterns/sequential-await/) — O(n × latency) → O(max latency)。改善比 **75×**（n=100、latency=2ms）
 
 ### 一次情報
 
@@ -85,11 +86,11 @@
 | DOM クエリ（`document.getElementById`）を毎回実行 | ループ外で参照を保持 |
 | 同じ設定ファイルの読み込みを毎回実行 | ループ外でキャッシュ |
 
-「ループ内の他パターン」の具体例一覧は [04. ループ内 JSON.parse — 同カテゴリの他パターン](../patterns/04-json-parse-in-loop/#同カテゴリの他パターンループ外移出) を参照してください。
+「ループ内の他パターン」の具体例一覧は [ループ内 JSON.parse — 同カテゴリの他パターン](../patterns/json-parse-in-loop/#同カテゴリの他パターンループ外移出) を参照してください。
 
 ### 該当パターン
 
-- [04. ループ内 JSON.parse](../patterns/04-json-parse-in-loop/) — O(n × parse) → O(parse + n)。改善比 **46×**（n=100,000）
+- [ループ内 JSON.parse](../patterns/json-parse-in-loop/) — O(n × parse) → O(parse + n)。改善比 **46×**（n=100,000）
 
 ### 一次情報
 

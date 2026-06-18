@@ -1,4 +1,4 @@
-# 04. ループ内 JSON.parse
+# ループ内 JSON.parse
 
 **カテゴリ**: [重複処理](../../docs/bottleneck-types.md#重複処理)  
 **計算量の変化**: O(n × parse) → O(parse + n)  

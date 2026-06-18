@@ -69,9 +69,10 @@ O(n²) と O(n) の差は n が大きいほど壊滅的になります。n=10,00
 
 このメンタルモデルが実際に現れるパターン:
 
-- [01. ループ内 線形探索](../patterns/01-loop-linear-search/) — ループ内の `find`/`filter` が O(n)
-- [02. reduce + スプレッド](../patterns/02-reduce-spread/) — `reduce` 内のスプレッドが O(n)
-- [04. ループ内 JSON.parse](../patterns/04-json-parse-in-loop/) — ループ不変処理の繰り返し
+- [ループ内 線形探索](../patterns/loop-linear-search/) — ループ内の `find`/`filter` が O(n)
+- [ループ内 includes → Set](../patterns/loop-includes-to-set/) — ループ内の `includes` が O(n)
+- [reduce + スプレッド](../patterns/reduce-spread/) — `reduce` 内のスプレッドが O(n)
+- [ループ内 JSON.parse](../patterns/json-parse-in-loop/) — ループ不変処理の繰り返し
 
 ---
 
