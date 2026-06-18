@@ -25,7 +25,7 @@
 | # | カテゴリ | パターン | 計算量の変化 | 改善比（参考） |
 |---|---|---|---|---|
 | 1 | 計算量の無駄 | [ループ内 線形探索](patterns/01-loop-linear-search/) | O(n²) → O(n) | 64×（n=10,000） |
-| 2 | 計算量の無駄 | [reduce + スプレッド](patterns/02-reduce-spread/) | O(n²) → O(n) | n 依存で急増 |
+| 2 | 計算量の無駄 | [reduce + スプレッド](patterns/02-reduce-spread/) | O(n²) → O(n) | 1,044×（n=1,000） |
 | 3 | 非同期の直列化 | [sequential await](patterns/03-sequential-await/) | O(n×latency) → O(max latency) | 75×（n=100） |
 | 4 | 重複処理 | [ループ内 JSON.parse](patterns/04-json-parse-in-loop/) | O(n×parse) → O(parse+n) | 46×（n=100,000） |
 
