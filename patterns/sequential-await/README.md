@@ -1,4 +1,4 @@
-# 03. sequential await
+# sequential await
 
 **カテゴリ**: [非同期の直列化](../../docs/bottleneck-types.md#非同期の直列化)  
 **計算量の変化**: O(n × latency) → O(max latency)  
