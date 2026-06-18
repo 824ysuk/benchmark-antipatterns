@@ -1,10 +1,12 @@
 # 01. ループ内 線形探索
 
-**カテゴリ**: 計算量の無駄  
+**カテゴリ**: [計算量の無駄](../../docs/bottleneck-types.md#計算量の無駄)  
 **計算量の変化**: O(n²) → O(n)  
 **実測改善比**: 64×（n=10,000、参考値）
 
 ## 問題
+
+> Big-O 記法の前提は [docs/performance-basics.md](../../docs/performance-basics.md) を参照。
 
 配列の `find` / `filter` / `some` / `includes` は先頭から順に走査する O(n) 操作。これをループ内で呼ぶと、外側 n 回 × 内側 n 回の二重ループになり O(n²) になる。n=10,000 なら最大 **1 億回**の比較が走る。
 
@@ -74,6 +76,5 @@ benchmark('✅ Map 索引化', () => {
 
 ## 参考
 
-- [Loop Performance Anti-Patterns: 40-Repository Scan — stackinsight.dev](https://stackinsight.dev/blog/loop-performance-empirical-study)
+- [カテゴリ解説: 計算量の無駄 — docs/bottleneck-types.md](../../docs/bottleneck-types.md#計算量の無駄) — 出典・引用を含む詳細解説
 - [How to Avoid O(N²) — Tomoharu Tsutsumi](https://tomoharutsutsumi.medium.com/how-to-avoid-o-n%C2%B2-60eaa61f523a)
-- [Big-O Cheat Sheet](https://www.bigocheatsheet.com/)

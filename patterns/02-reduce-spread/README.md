@@ -1,10 +1,12 @@
 # 02. reduce + スプレッド
 
-**カテゴリ**: 計算量の無駄  
+**カテゴリ**: [計算量の無駄](../../docs/bottleneck-types.md#計算量の無駄)  
 **計算量の変化**: O(n²) → O(n)  
 **実測改善比**: 1,044×（n=1,000）
 
 ## 問題
+
+> Big-O 記法の前提は [docs/performance-basics.md](../../docs/performance-basics.md) を参照。
 
 `reduce` の中で `{...acc, [key]: value}` を使うと、各ステップで `acc` 全プロパティをコピーする。1 回目は 1 プロパティ、2 回目は 2 プロパティ、…、n 回目は n プロパティをコピーするため、総コピー数は `n(n+1)/2 = O(n²)` になる。
 
@@ -76,5 +78,5 @@ items.map(item => item.value);
 
 ## 参考
 
+- [カテゴリ解説: 計算量の無駄 — docs/bottleneck-types.md](../../docs/bottleneck-types.md#計算量の無駄) — 出典・引用を含む詳細解説
 - [The reduce spread Anti-Pattern — Rich Snapp](https://www.richsnapp.com/article/2019/06-09-reduce-spread-anti-pattern) — V8 バイトコードレベルの解説
-- [Big-O Cheat Sheet](https://www.bigocheatsheet.com/)
