@@ -29,6 +29,8 @@ const results = await Promise.all(ids.map(id => fetchItem(id)));
 
 ## ベンチマーク
 
+非同期処理のため計測ヘルパーは不要です。以下をそのまま実行してください。
+
 ```javascript
 const delay = ms => new Promise(r => setTimeout(r, ms));
 const ids = Array.from({ length: 20 }, (_, i) => i);
