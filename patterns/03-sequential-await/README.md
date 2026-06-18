@@ -1,10 +1,12 @@
 # 03. sequential await
 
-**カテゴリ**: 非同期の直列化  
+**カテゴリ**: [非同期の直列化](../../docs/bottleneck-types.md#非同期の直列化)  
 **計算量の変化**: O(n × latency) → O(max latency)  
 **実測改善比**: 75×（n=100、latency=2ms、参考値）
 
 ## 問題
+
+> カテゴリの詳細解説は [docs/bottleneck-types.md#非同期の直列化](../../docs/bottleneck-types.md#非同期の直列化) を参照。
 
 `await` は Promise が解決するまで次の行に進めない「待機ゲート」。`for...of` ループの中で `await` を使うと、1 件ずつ順番に待つ直列処理になる。n=100・latency=2ms なら合計 **200ms** かかる。
 
@@ -76,5 +78,5 @@ const ids = Array.from({ length: 20 }, (_, i) => i);
 
 ## 参考
 
-- [Loop Performance Anti-Patterns: 40-Repository Scan — stackinsight.dev](https://stackinsight.dev/blog/loop-performance-empirical-study)
+- [カテゴリ解説: 非同期の直列化 — docs/bottleneck-types.md](../../docs/bottleneck-types.md#非同期の直列化) — 出典・引用を含む詳細解説
 - [MDN: Promise.all()](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise/all)

@@ -1,10 +1,12 @@
 # 04. ループ内 JSON.parse
 
-**カテゴリ**: 重複処理  
+**カテゴリ**: [重複処理](../../docs/bottleneck-types.md#重複処理)  
 **計算量の変化**: O(n × parse) → O(parse + n)  
 **実測改善比**: 46×（n=100,000、参考値）
 
 ## 問題
+
+> カテゴリの詳細解説は [docs/bottleneck-types.md#重複処理](../../docs/bottleneck-types.md#重複処理) を参照。
 
 `JSON.parse` は毎回「字句解析 → オブジェクト構築 → メモリ確保」を実行する重い処理。同じ JSON 文字列をループ内でパースすると、ループ変数に依存しない処理を n 回繰り返すことになる。
 
@@ -84,4 +86,4 @@ benchmark('✅ ループ外 parse', () => {
 
 ## 参考
 
-- [Loop Performance Anti-Patterns: 40-Repository Scan — stackinsight.dev](https://stackinsight.dev/blog/loop-performance-empirical-study)
+- [カテゴリ解説: 重複処理 — docs/bottleneck-types.md](../../docs/bottleneck-types.md#重複処理) — 出典・引用を含む詳細解説
