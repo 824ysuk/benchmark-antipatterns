@@ -63,7 +63,7 @@ for (const r of reviews) {
 
 ## ベンチマーク
 
-既存パターンの `benchmark()` ヘルパーと異なり、本パターンは Docker + Prisma + PostgreSQL が必要。1 コマンドで再現できる手順を以下に示す。
+既存パターンの `benchmark()` ヘルパー（[CONTRIBUTING.md](../../CONTRIBUTING.md#計測ヘルパー)）は sync 関数を想定するため、async な Prisma client では使えない。代わりに `process.hrtime.bigint()` ベースの async 対応 helper を bench.js 内に inline 定義する。本パターンは Docker + Prisma + PostgreSQL が必要で、1 コマンドで再現できる手順を以下に示す。
 
 ### 環境セットアップ
 
@@ -157,6 +157,7 @@ async function measure(label, fn) {
 ## 実測値（参考）
 
 データ規模: 100 User / 1,000 Order / 5,000 Item / 15,000 Review。median (10 反復 + 2 warmup)。
+環境: macOS 26.5.1 / arm64 / Node 20.19.6 / Prisma 6.19.3 / PostgreSQL 16 (alpine, Docker)。
 
 | 戦略 | 中央値 | 主な比較 |
 |---|---|---|
@@ -171,7 +172,7 @@ async function measure(label, fn) {
 | (b) vs (c)（同 1 行修正の効果） | 31× |
 | (a) vs (d)（最大差、警鐘用） | 79× |
 
-> 結果は実行環境・ハードウェアによって変わります。同じ環境で改善前後を比較することが重要です。
+> 結果は実行環境・ハードウェアによって変わります。同じ環境で改善前後を比較することが重要です。本検証では別環境 (Node 24.14.1) でも (b)/(d) = 56× で再現を確認しています（環境差で 35-60× の幅）。
 
 ## 注意・例外
 
@@ -179,6 +180,7 @@ async function measure(label, fn) {
 - **多くのケースは `relationLoadStrategy: "query"` の 1 行追加で解決**する。手動 preload は preview を使えない / 使いたくない場合の fallback
 - **to-one を 1 段だけ include** する場合は JOIN の方が速いことが多い。本パターンは **to-many を 2 段以上ネスト**するときに限り適用する
 - **SQLite では再現不能**: Prisma が `relationLoadStrategy` 引数自体を validation error で拒否する。本パターンは PostgreSQL / MySQL の Prisma 利用環境固有
+- **(a) default と (b) `relationLoadStrategy: "join"` は本来同じ戦略**（Prisma 6.x + PostgreSQL の default は `join`）。schema 反映直後や接続プール warmup 不足時には乖離して測定されることがあるが、十分な warmup (2-3 回以上) を確保すれば両者はほぼ同等になる。表の (a)/(b) ≈ 1.9× は環境固有の noise を含む値で、antipattern の本質倍率としては (b)/(d) を採用する
 - ページング条件によっては raw SQL の方が速いケースもある（offset の負荷など）
 
 ## 他言語での同等パターン
