@@ -91,6 +91,10 @@ benchmark('✅ push + reverse', () => {
 - **AsyncIterator (`for await...of`) では A 案のみ採用可能**。B 案は `source.length` 不在のため適用不可。WebSocket / SSE / DB cursor 等で `for await (const x of stream) arr.unshift(x)` する場合は A 案 (`arr.push(x)` の後にループ終了時 1 回 `arr.reverse()`)
 - **同一配列での自己参照 (`arr === source`) は元コード・改善案ともに未定義動作**。`for (const x of arr) arr.unshift(x)` は無限ループ / OOM。読み元と書き先を分けること
 - **イベント駆動の累積 (`onmessage` ハンドラ内の単発 `items.unshift(event.data)` 等) も session 全体で O(n²) になる**。構文的にループに見えないが累積回数が増えると同じ問題が発生する。長時間配信では deque や逆順表示 (末尾追加 + reverse-iteration での render) を検討
+- **例外発生時の途中状態が元コードと異なる**。元 (`unshift`) は途中までの要素が正しい newest-first 順で `arr` に残る。A 案は途中で例外が起きると `reverse` 前で停止するため oldest-first で残る。`catch` 内で `arr` を観察するコード (UI 表示・ログ・recovery) は挙動が変わる
+- **ループ中に `source` を伸縮させる場合 B 案は使えない**。B 案は開始時の `source.length` をキャッシュするため、ループ中に他コード (またはループ本体) が `source.push` / `splice` しても見えない。`for...of` の Array iterator は live length を見るため挙動が異なる
+- **`source` が `[Symbol.iterator]` を override している (filtering iterator 等) 場合 B 案は使えない**。B 案は raw index access のため iterator override を無視する。`FilteredArray` のような subclass や `Symbol.iterator` を返す Proxy には A 案 (`for...of`)
+- **ループ中に `arr` を他コードが読む (Proxy / async / getter) 場合、A 案は中間状態の順序が逆**。元は newest-first prefix を常に維持するが、A 案は `reverse()` 完了前 oldest-first を露出する。観察者がいる場合は元の `unshift` を保つか、ループ全体を critical section で囲う
 
 ## 他言語での同等パターン
 
