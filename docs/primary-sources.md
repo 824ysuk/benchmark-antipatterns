@@ -55,7 +55,8 @@ V8 team の現職・元職メンバーが個人 blog で発表した記事。Tie
 | [mathiasbynens.be — shapes-ics](https://mathiasbynens.be/notes/shapes-ics) | shapes / IC の包括解説（Mathias Bynens, V8 team） |
 | [mathiasbynens.be — array-fill-undefined](https://mathiasbynens.be/notes/javascript-array-fill-undefined) | array holes と HOLEY kind 退化 |
 | [mrale.ph — monomorphism](https://mrale.ph/blog/2015/01/11/whats-up-with-monomorphism.html) | monomorphism / IC（V8 team, 2015 時点。**Crankshaft → TurboFan 移行前**の文脈に注意） |
-| [benediktmeurer.de — v8-tup-2-0](https://benediktmeurer.de/2018/03/23/v8-tup-2-0/) | 4-way polymorphic ≈ 1.4× の根拠（TurboFan, 2018 時点。Maglev 登場前） |
+| [benediktmeurer.de — Impact of polymorphism on component-based frameworks like React](https://benediktmeurer.de/2018/03/23/impact-of-polymorphism-on-component-based-frameworks-like-react/) | 4-way polymorphic / MEGAMORPHIC IC の性能 cliff 解析（TurboFan, 2018-03-23 時点。Maglev 登場前。具体数値「100 shapes: 43 ms → 900 shapes: 2428 ms」等を含む。1.4× は本記事内ではなく Builder.io / Hevery 2023-02 が canonical） |
+| [benediktmeurer.de — JavaScript engine fundamentals: Shapes and Inline Caches](https://benediktmeurer.de/2018/06/14/javascript-engine-fundamentals-shapes-and-inline-caches/) | Shapes / Inline Caches の包括解説 |
 
 ---
 
@@ -65,7 +66,7 @@ V8 team の現職・元職メンバーが個人 blog で発表した記事。Tie
 
 | URL | 主題 |
 |---|---|
-| [builder.io — monomorphic-javascript](https://www.builder.io/blog/monomorphic-javascript) | IC monomorphic / polymorphic / megamorphic 数値報告例（Hevery 2022。元記事の microbenchmark 形式・engine version を必ず併読） |
+| [builder.io — monomorphic-javascript](https://www.builder.io/blog/monomorphic-javascript) | IC monomorphic / polymorphic / megamorphic 数値報告例（Hevery 2023-02。元記事の microbenchmark 形式・engine version を必ず併読） |
 | [leanylabs.com — foreach-map-reduce](https://leanylabs.com/blog/js-foreach-map-reduce-vs-for-for_of/) | `forEach` / `map` / `reduce` 計測（1M objects、Node v16 系。元記事の version 表記参照） |
 | [stackinsight.dev — 40-repository scan](https://stackinsight.dev/blog/loop-performance-empirical-study) | 実コードベース 40 リポジトリでの出現頻度調査 |
 | [richsnapp.com — reduce-spread](https://www.richsnapp.com/article/2019/06-09-reduce-spread-anti-pattern) | reduce + spread が V8 バイトコードレベルで O(n²) になる理由 |
@@ -107,7 +108,7 @@ pattern や docs で「この主題の根拠は？」と聞かれたときに参
 | Elements Kinds 退化 | T1 [elements-kinds](https://v8.dev/blog/elements-kinds) / T2 [array-fill-undefined](https://mathiasbynens.be/notes/javascript-array-fill-undefined) |
 | `Array.prototype.fill` の例外（2025-02-28 時点） | T1 [elements-kinds](https://v8.dev/blog/elements-kinds)（`new Array(n).fill(0)` が PACKED_SMI を維持する条件は元記事参照） |
 | hidden class / IC | T1 [fast-properties](https://v8.dev/blog/fast-properties) / T1 [hidden-classes](https://v8.dev/docs/hidden-classes) / T2 [shapes-ics](https://mathiasbynens.be/notes/shapes-ics) / T2 [monomorphism](https://mrale.ph/blog/2015/01/11/whats-up-with-monomorphism.html) |
-| IC monomorphic vs polymorphic vs megamorphic の数値 | T3 [builder.io](https://www.builder.io/blog/monomorphic-javascript)（Hevery 2022、条件込み） / T2 [v8-tup-2-0](https://benediktmeurer.de/2018/03/23/v8-tup-2-0/)（4-way ≈ 1.4×、TurboFan 2018） |
+| IC monomorphic vs polymorphic vs megamorphic の数値 | T3 [builder.io](https://www.builder.io/blog/monomorphic-javascript)（Hevery 2023-02、条件込み。4-way ≈ 1.4× の canonical） / T2 [Meurer 2018 impact-of-polymorphism](https://benediktmeurer.de/2018/03/23/impact-of-polymorphism-on-component-based-frameworks-like-react/)（MEGAMORPHIC cliff の具体数値） |
 | `push` / `unshift` 仕様 | T1 ECMA-262 [§23.1.3.23 push](https://tc39.es/ecma262/#sec-array.prototype.push) / [§23.1.3.37 unshift](https://tc39.es/ecma262/#sec-array.prototype.unshift) / T4 CLRS §17.4（amortized） |
 | `shift` O(1) 化の妥当性 | T4 [Bugzilla #1348772](https://bugzilla.mozilla.org/show_bug.cgi?id=1348772)（実装収束、仕様要件ではない） |
 | reduce + spread が O(n²) | T3 [richsnapp.com](https://www.richsnapp.com/article/2019/06-09-reduce-spread-anti-pattern) |

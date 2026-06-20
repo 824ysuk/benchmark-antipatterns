@@ -2,7 +2,7 @@
 
 **カテゴリ**: [計算量の無駄](../../docs/bottleneck-types.md#計算量の無駄)
 **計算量の変化**: O(n²) → O(n)
-**実測改善比**: 207.8×（Node v24.14.1 / V8 13.6 / n=10,000、詳細は [実測値](#実測値参考)）
+**実測改善比**: 約 200× オーダー（Node v24.14.1 / V8 13.6 / Apple M5 Pro / n=10,000 で 207.8×。環境・CPU・engine version で大きく変動するため詳細は [実測値](#実測値参考) と注意・例外節を参照）
 
 ## 問題
 
@@ -63,6 +63,13 @@ benchmark('✅ push + reverse', () => {
 
 V8 の階層実行（Ignition インタプリタ → Sparkplug / Maglev / TurboFan JIT）の昇格しきい値は版間で変わるため、計測前に warmup として同関数を数千回呼んでから本計測に入ることが望ましい。Tier 到達を自分で確認したい場合は `node --allow-natives-syntax` で起動して `%GetOptimizationStatus(fn)` を観測する（`--allow-natives-syntax` は V8 専用・bit 配置は版間で変わるため自己検証用）。
 
+完成版の TypeScript 実装は本ディレクトリ同梱の [`bench.ts`](./bench.ts) を参照。N=1,000 / 10,000 / 100,000 の 3 段階計測、warmup（n を 256 に cap した上で 20,000 invocation – JIT tier 到達狙いで n に依存しない）、DCE 回避（`globalThis.__bench_sink`）、median+p95+std 表示、elements kind 確認用 `%DebugPrint` probe を含む。
+
+**実行前提**:
+
+- **Node v22.6 以上**（`--experimental-strip-types` で .ts 直実行が可能になったバージョン）。v22.0–22.5 では `npx tsx bench.ts` または `tsc` でトランスパイル後実行する
+- elements kind 確認まで取りたい場合は `node --allow-natives-syntax --experimental-strip-types --no-warnings bench.ts` で起動する
+
 ## 実測値（参考）
 
 `bench.ts` を `node --allow-natives-syntax --experimental-strip-types --no-warnings bench.ts` で実行した結果（warmup 20,000 invocations、iterations 100 / 30 / 10）:
@@ -96,10 +103,12 @@ V8 の階層実行（Ignition インタプリタ → Sparkplug / Maglev / TurboF
 
 ## 参考
 
-- [ECMA-262 §23.1.3.37 Array.prototype.unshift（current editor's draft）](https://tc39.es/ecma262/#sec-array.prototype.unshift) — `k > 0` を満たす間、全要素を後方コピーする loop の仕様根拠
-- [ECMA-262 §23.1.3.23 Array.prototype.push（current editor's draft）](https://tc39.es/ecma262/#sec-array.prototype.push) — `len` 位置に書いて `len = len + 1` のみで shifting を含まない
-- [V8 blog: Elements kinds in V8](https://v8.dev/blog/elements-kinds) — `PACKED`/`HOLEY` × `SMI`/`DOUBLE`/`OBJECT` の representation specialization（constant factor 最適化の文脈、`unshift` の O(N) を直接論じる文書ではない）
-- [SpiderMonkey Bugzilla #1348772 — Array.prototype.shift を O(1) にする実装 (Firefox 55 で投入)](https://bugzilla.mozilla.org/show_bug.cgi?id=1348772) — 「`shift`/`unshift` の O(N) は仕様要件ではなく実装選択」の一次根拠
-- CLRS *Introduction to Algorithms* §17.4 Dynamic tables — `push` の amortized O(1) の標準解析（aggregate method）
+引用 Tier は [docs/primary-sources.md](../../docs/primary-sources.md) 体系に従う（Tier 1: 公式 / spec、Tier 2: engine team、Tier 3: 信頼性ある二次、Tier 4: 理論）。
+
+- **Tier 1**: [ECMA-262 §23.1.3.37 Array.prototype.unshift（current editor's draft）](https://tc39.es/ecma262/#sec-array.prototype.unshift) — `k > 0` を満たす間、全要素を後方コピーする loop の仕様根拠
+- **Tier 1**: [ECMA-262 §23.1.3.23 Array.prototype.push（current editor's draft）](https://tc39.es/ecma262/#sec-array.prototype.push) — `len` 位置に書いて `len = len + 1` のみで shifting を含まない
+- **Tier 1**: [V8 blog: Elements kinds in V8](https://v8.dev/blog/elements-kinds) — `PACKED`/`HOLEY` × `SMI`/`DOUBLE`/`OBJECT` の representation specialization（constant factor 最適化の文脈、`unshift` の O(N) を直接論じる文書ではない）
+- **Tier 4**: [SpiderMonkey Bugzilla #1348772 — Array.prototype.shift を O(1) にする実装 (Firefox 55 で投入)](https://bugzilla.mozilla.org/show_bug.cgi?id=1348772) — 「`shift`/`unshift` の O(N) は仕様要件ではなく実装選択」の一次根拠
+- **Tier 4**: CLRS *Introduction to Algorithms* §17.4 Dynamic tables — `push` の amortized O(1) の標準解析（aggregate method）
 - [カテゴリ解説: 計算量の無駄 — docs/bottleneck-types.md](../../docs/bottleneck-types.md#計算量の無駄)
-- Issue #7 — 本パターンの元提案（仕様引用・engine 実装ソース・ベンチマーク設計の詳細）
+- [Issue #7](https://github.com/824ysuk/benchmark-antipatterns/issues/7) — 本パターンの元提案（仕様引用・engine 実装ソース・ベンチマーク設計の詳細）
