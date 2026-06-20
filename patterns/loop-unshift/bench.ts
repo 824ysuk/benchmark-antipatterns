@@ -53,8 +53,19 @@
  */
 
 // ─────────────────────────────────────────────────────────────────────────────
-// V8 native intrinsics (--allow-natives-syntax 指定時のみ利用可)
+// Node.js / V8 native intrinsics
+//   - process は Node.js global。@types/node なしで型チェックできるよう最小宣言。
+//   - DebugPrint / GetOptimizationStatus は --allow-natives-syntax 指定時のみ利用可。
 // ─────────────────────────────────────────────────────────────────────────────
+declare const process: {
+  readonly version: string;
+  readonly versions: { readonly v8: string; readonly node: string };
+  readonly platform: string;
+  readonly arch: string;
+  readonly report?: {
+    getReport(): { header: { cpus?: ReadonlyArray<{ model: string }> } };
+  };
+};
 declare function DebugPrint(o: unknown): void;
 declare function GetOptimizationStatus(fn: Function): number;
 
