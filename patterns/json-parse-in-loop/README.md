@@ -2,7 +2,7 @@
 
 **カテゴリ**: [重複処理](../../docs/bottleneck-types.md#重複処理)  
 **計算量の変化**: O(n × parse) → O(parse + n)  
-**実測改善比**: 46×（n=100,000、参考値）
+**実測改善比**: 98×（n=100,000、参考値）
 
 ## 問題
 
@@ -32,6 +32,12 @@ for (const key of keys) {
 }
 ```
 
+## 計測環境
+
+- Node.js: v24.14.1（`node -v`）
+- V8: 13.6.233.17-node.44（`node -p process.versions.v8`）
+- OS / CPU: macOS / Apple Silicon
+
 ## ベンチマーク
 
 [計測ヘルパー](../../CONTRIBUTING.md#計測ヘルパー)を先に実行してから以下を実行してください。
@@ -45,21 +51,21 @@ const keys = Array.from({ length: N }, (_, i) => `key${i % 100}`);
 benchmark('❌ ループ内 parse', () => {
   const r = [];
   for (const key of keys) { const c = JSON.parse(jsonString); r.push(c[key]); }
-});
+}, { warmup: 30 });
 benchmark('✅ ループ外 parse', () => {
   const c = JSON.parse(jsonString);
   const r = [];
   for (const key of keys) r.push(c[key]);
-});
+}, { warmup: 30 });
 ```
 
 ## 実測値（参考）
 
 | 条件 | 改善前 | 改善後 | 倍率 |
 |---|---|---|---|
-| n = 100,000 | 123.4 ms | 2.53 ms | **46×** |
+| n = 100,000（warmup 30, iter 10） | 174.22 ms | 1.77 ms | **98×** |
 
-> 結果は実行環境・ハードウェアによって変わります。同じ環境で改善前後を比較することが重要です。
+> 結果は実行環境・ハードウェアによって変わります。上記「計測環境」と同じ条件で改善前後を比較することが重要です。
 
 ## 注意・例外
 

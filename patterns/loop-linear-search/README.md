@@ -2,7 +2,7 @@
 
 **カテゴリ**: [計算量の無駄](../../docs/bottleneck-types.md#計算量の無駄)  
 **計算量の変化**: O(n²) → O(n)  
-**実測改善比**: 64×（n=10,000、参考値）
+**実測改善比**: 81×（n=10,000、参考値）
 
 ## 問題
 
@@ -32,6 +32,12 @@ for (const user of users) {
 }
 ```
 
+## 計測環境
+
+- Node.js: v24.14.1（`node -v`）
+- V8: 13.6.233.17-node.44（`node -p process.versions.v8`）
+- OS / CPU: macOS / Apple Silicon
+
 ## ベンチマーク
 
 [計測ヘルパー](../../CONTRIBUTING.md#計測ヘルパー)を先に実行してから以下を実行してください。
@@ -44,21 +50,21 @@ const users  = Array.from({ length: N }, (_, i) => ({ id: i }));
 benchmark('❌ 線形探索', () => {
   const r = [];
   for (const u of users) r.push(orders.find(o => o.userId === u.id) ?? null);
-});
+}, { warmup: 100 });
 benchmark('✅ Map 索引化', () => {
   const m = new Map(orders.map(o => [o.userId, o]));
   const r = [];
   for (const u of users) r.push(m.get(u.id) ?? null);
-});
+}, { warmup: 100 });
 ```
 
 ## 実測値（参考）
 
 | 条件 | 改善前 | 改善後 | 倍率 |
 |---|---|---|---|
-| n = 10,000 | 61.9 ms | 0.95 ms | **64×** |
+| n = 10,000（warmup 100, iter 10） | 36.32 ms | 0.45 ms | **81×** |
 
-> 結果は実行環境・ハードウェアによって変わります。同じ環境で改善前後を比較することが重要です。
+> 結果は実行環境・ハードウェアによって変わります。上記「計測環境」と同じ条件で改善前後を比較することが重要です。
 
 ## 注意・例外
 

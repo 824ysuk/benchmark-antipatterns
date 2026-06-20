@@ -2,7 +2,7 @@
 
 **カテゴリ**: [非同期の直列化](../../docs/bottleneck-types.md#非同期の直列化)  
 **計算量の変化**: O(n × latency) → O(max latency)  
-**実測改善比**: 75×（n=100、latency=2ms、参考値）
+**実測改善比**: 94×（n=100、latency=2ms、参考値）
 
 ## 問題
 
@@ -29,22 +29,28 @@ for (const id of ids) {
 const results = await Promise.all(ids.map(id => fetchItem(id)));
 ```
 
+## 計測環境
+
+- Node.js: v24.14.1（`node -v`）
+- V8: 13.6.233.17-node.44（`node -p process.versions.v8`）
+- OS / CPU: macOS / Apple Silicon
+
 ## ベンチマーク
 
-非同期処理のため計測ヘルパーは不要です。以下をそのまま実行してください。
+非同期処理のため計測ヘルパーは不要です（待ち時間が支配的で JIT warmup の影響は小さい）。以下をそのまま実行してください。
 
 ```javascript
 const delay = ms => new Promise(r => setTimeout(r, ms));
-const ids = Array.from({ length: 20 }, (_, i) => i);
+const ids = Array.from({ length: 100 }, (_, i) => i);
 
 (async () => {
   let start = performance.now();
-  for (const id of ids) await delay(10);
-  console.log(`[❌ sequential] ${Math.round(performance.now() - start)}ms（期待値: 200ms）`);
+  for (const id of ids) await delay(2);
+  console.log(`[❌ sequential] ${(performance.now() - start).toFixed(1)}ms（期待値: 200ms）`);
 
   start = performance.now();
-  await Promise.all(ids.map(() => delay(10)));
-  console.log(`[✅ Promise.all] ${Math.round(performance.now() - start)}ms（期待値: 10ms）`);
+  await Promise.all(ids.map(() => delay(2)));
+  console.log(`[✅ Promise.all] ${(performance.now() - start).toFixed(1)}ms（期待値: 2ms）`);
 })();
 ```
 
@@ -52,10 +58,10 @@ const ids = Array.from({ length: 20 }, (_, i) => i);
 
 | 条件 | 改善前 | 改善後 | 倍率 |
 |---|---|---|---|
-| n=10、latency=2ms | 20 ms | 2 ms | **9×** |
-| n=100、latency=2ms | 200 ms | 2 ms | **75×** |
+| n=10、latency=2ms | 22.9 ms | 2.4 ms | **9.4×** |
+| n=100、latency=2ms | 228.0 ms | 2.4 ms | **94×** |
 
-> 結果は実行環境・ハードウェアによって変わります。同じ環境で改善前後を比較することが重要です。
+> 結果は実行環境・ハードウェアによって変わります。上記「計測環境」と同じ条件で改善前後を比較することが重要です。
 
 ## 注意・例外
 
