@@ -1,16 +1,17 @@
-# ボトルネック 3 カテゴリ
+# ボトルネック 4 カテゴリ
 
-このリポジトリのパターンは、根本原因が異なる 3 カテゴリに分類されます。ROOT README のカテゴリ列と、各パターン README の `カテゴリ:` メタデータはここにリンクされています。引用付きの一次情報もここに集約しています。
+このリポジトリのパターンは、根本原因が異なる 4 カテゴリに分類されます。ROOT README のカテゴリ列と、各パターン README の `カテゴリ:` メタデータはここにリンクされています。引用付きの一次情報もここに集約しています。
 
 ---
 
 ## 判別フロー
 
-コードレビュー時に「これはどのカテゴリか」を判断する 3 つの問い:
+コードレビュー時に「これはどのカテゴリか」を判断する 4 つの問い:
 
 1. **ループの内側に O(n) 操作（配列の全走査・オブジェクトのコピー）があるか？** → [計算量の無駄](#計算量の無駄)
 2. **ループの内側に `await` があり、処理が独立しているか？** → [非同期の直列化](#非同期の直列化)
 3. **ループ変数に依存しない処理を毎回実行しているか？** → [重複処理](#重複処理)
+4. **middleware / plugin / index 等の登録順序に依存して silent に機能が抜けるか？** → [構成順序](#構成順序)
 
 ---
 
@@ -99,8 +100,39 @@
 
 ---
 
+## 構成順序
+
+**定義**: middleware / plugin / 登録順依存の構造で、登録順序を間違えると silent に機能が無効化されるパターン。エラーも警告も出ず、レビューでも該当 API の呼び出し自体は存在するため見逃されやすい。
+
+**メンタルモデル**: 「response cycle を終了する handler より下流に置いた wrapping middleware は通らない」「framework の linear chain では、wrap したい middleware は wrap 対象より上に置く」
+
+### 検出シグナル
+
+| シグナル | 改善後 |
+|---|---|
+| `app.use(compression())` が route handler / `express.static` より**後**に登録されている | 圧縮対象 route より**前**に登録 |
+| `app.use(helmet())` で CSP を設定する route handler より**後**に登録されている | route handler より**前**に登録（ただし route 内で `res.setHeader` する場合は別途検討） |
+| `app.use(express.static(...))` が `compression()` より**前**に登録されている | static asset を圧縮したいなら `compression()` を先に |
+
+### 該当パターン
+
+- [Express compression ordering](../patterns/express-compression-ordering/) — Express で `compression()` を route より後ろに `app.use()` して silent に egress 圧縮が無効化される。改善比 **25.76×** wire-size（1000 件 JSON、477,868 byte → 18,549 byte）
+
+### 採用基準
+
+このカテゴリは「silent failure」 + 「実測 9× 以上の改善」の二条件を併せて課す（[ADR 0001](decisions/0001-scope-extension-configuration-ordering.md) 参照）。エラー / 警告が出るタイプのフレームワーク設定ミスは対象外。
+
+### 一次情報
+
+- [Writing middleware — Express](https://expressjs.com/en/guide/writing-middleware.html) — middleware が登録順に実行され、response cycle 終了で後段が skip される仕組み
+- [Using middleware — Express](https://expressjs.com/en/guide/using-middleware.html) — 「Express application は本質的に middleware function 呼び出しの連なり」
+- [expressjs/compression — README](https://github.com/expressjs/compression) — 「simply `app.use` the module as high as you like」
+- [expressjs/compression — `index.js` source](https://github.com/expressjs/compression/blob/master/index.js) — `res.write` / `res.end` を wrap して zlib にパイプする実装
+
+---
+
 ## 新規パターンをどのカテゴリに分類するか
 
-判別フローの 3 問を順に確認してください → [判別フロー](#判別フロー)
+判別フローの 4 問を順に確認してください → [判別フロー](#判別フロー)
 
 パターンの追加手順は [CONTRIBUTING.md](../CONTRIBUTING.md) を参照してください。
