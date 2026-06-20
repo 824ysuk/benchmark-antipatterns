@@ -1,6 +1,8 @@
 # V8 Element Kinds 学習ノート
 
 > 本書はパターンではなく学習ノート。本 repo の掲載基準 (実測 9× 以上 / JIT 非吸収 / 手元で動くベンチ / アルゴリズム層) のうち (a) 9× を構造的に満たせないため [`patterns/`](../patterns/) には含めない。一方で機構解説・kind 機械検証手順・実測値整理は将来 (i) hot path で 9× を達成する workload が発見された場合、(ii) CONTRIBUTING.md 9× 基準が改訂された場合、(iii) [docs/bottleneck-types.md](./bottleneck-types.md) に新カテゴリが追加された場合 (Issue [#11](https://github.com/824ysuk/benchmark-antipatterns/issues/11)) の出発点として保全する。
+>
+> **学習ノート枠の濫用防止 (新規追加基準)**: 本書は exceptional treatment であり repo の defaults ではない。「9× 未達なら `docs/<topic>-note.md` で保全」を標準動線として運用しない。`docs/<topic>-note.md` の新規追加は **(i)** pattern として 9× 未達 **かつ (ii)** V8 公式 docs / ECMA-262 / engine team member 公開資料等の **一次情報を verbatim 引用可能** **かつ (iii)** 機構解説に独立した学習価値がある (本 repo の 3 カテゴリ判別フローに該当しない engine 内部表現の理解、など) 場合に限る。3 条件を満たさない 9× 未達 Issue は学習ノートではなく Issue コメント / decision log で記録する。
 
 ## 背景
 

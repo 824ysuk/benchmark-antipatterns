@@ -106,3 +106,5 @@
 判別フローの 3 問を順に確認してください → [判別フロー](#判別フロー)
 
 パターンの追加手順は [CONTRIBUTING.md](../CONTRIBUTING.md) を参照してください。
+
+3 問のいずれにも該当しないが学習価値のある機構解説（engine の内部表現劣化など）は、パターンとして掲載せず `docs/<topic>-note.md` 形式の学習ノートとして保全する方針です（例: [docs/element-kinds-note.md](element-kinds-note.md)、V8 Element Kinds の機構解説）。学習ノート枠の新規追加基準は当該 docs 冒頭の callout を参照してください。
