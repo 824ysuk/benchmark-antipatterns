@@ -78,5 +78,8 @@ const ids = Array.from({ length: 20 }, (_, i) => i);
 
 ## 参考
 
-- [カテゴリ解説: 非同期の直列化 — docs/bottleneck-types.md](../../docs/bottleneck-types.md#非同期の直列化) — 出典・引用を含む詳細解説
-- [MDN: Promise.all()](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise/all)
+引用 Tier は [docs/primary-sources.md](../../docs/primary-sources.md) 体系に従う（Tier 1: 公式 / spec、Tier 2: engine team、Tier 3: 信頼性ある二次、Tier 4: 理論）。
+
+- **Tier 3**: [MDN: Promise.all()](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise/all) — 並列実行のセマンティクス・rejection・iterable・結果順序
+- **Tier 3**: [Loop Performance Anti-Patterns: 40-Repository Scan — stackinsight.dev](https://stackinsight.dev/blog/loop-performance-empirical-study) — 非同期直列化パターンの実コードベース調査
+- [カテゴリ解説: 非同期の直列化 — docs/bottleneck-types.md](../../docs/bottleneck-types.md#非同期の直列化)

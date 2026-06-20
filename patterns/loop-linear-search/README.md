@@ -76,5 +76,9 @@ benchmark('✅ Map 索引化', () => {
 
 ## 参考
 
-- [カテゴリ解説: 計算量の無駄 — docs/bottleneck-types.md](../../docs/bottleneck-types.md#計算量の無駄) — 出典・引用を含む詳細解説
-- [How to Avoid O(N²) — Tomoharu Tsutsumi](https://tomoharutsutsumi.medium.com/how-to-avoid-o-n%C2%B2-60eaa61f523a)
+引用 Tier は [docs/primary-sources.md](../../docs/primary-sources.md) 体系に従う（Tier 1: 公式 / spec、Tier 2: engine team、Tier 3: 信頼性ある二次、Tier 4: 理論）。
+
+- **Tier 4**: [Big-O Cheat Sheet](https://www.bigocheatsheet.com/) — Map / Set の O(1) ルックアップ理論
+- **Tier 3**: [Loop Performance Anti-Patterns: 40-Repository Scan — stackinsight.dev](https://stackinsight.dev/blog/loop-performance-empirical-study) — 実コードベース 40 リポジトリでの出現頻度調査
+- **Tier 3**: [How to Avoid O(N²) — Tomoharu Tsutsumi (Medium)](https://tomoharutsutsumi.medium.com/how-to-avoid-o-n%C2%B2-60eaa61f523a) — 日本語コミュニティでのループ内線形探索解説
+- [カテゴリ解説: 計算量の無駄 — docs/bottleneck-types.md](../../docs/bottleneck-types.md#計算量の無駄)
