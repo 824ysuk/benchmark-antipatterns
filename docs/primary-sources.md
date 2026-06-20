@@ -105,7 +105,7 @@ pattern や docs で「この主題の根拠は？」と聞かれたときに参
 
 | 主題 | 主に参照する Tier / URL |
 |---|---|
-| Elements Kinds 退化 | T1 [elements-kinds](https://v8.dev/blog/elements-kinds) / T2 [array-fill-undefined](https://mathiasbynens.be/notes/javascript-array-fill-undefined) |
+| Elements Kinds 退化 | T1 [elements-kinds](https://v8.dev/blog/elements-kinds) / T2 [array-fill-undefined](https://mathiasbynens.be/notes/javascript-array-fill-undefined)（`%DebugPrint` 機械検証手順・Node v24.14.1 での kind 遷移観察・`reduce` / `map` 倍率実測表は Issue [#10](https://github.com/824ysuk/benchmark-antipatterns/issues/10) のコメント — defer-needs-rebench 判定の根拠資産。pattern 化見送りで `patterns/` には含めない） |
 | `Array.prototype.fill` の例外（2025-02-28 時点） | T1 [elements-kinds](https://v8.dev/blog/elements-kinds)（`new Array(n).fill(0)` が PACKED_SMI を維持する条件は元記事参照） |
 | hidden class / IC | T1 [fast-properties](https://v8.dev/blog/fast-properties) / T1 [hidden-classes](https://v8.dev/docs/hidden-classes) / T2 [shapes-ics](https://mathiasbynens.be/notes/shapes-ics) / T2 [monomorphism](https://mrale.ph/blog/2015/01/11/whats-up-with-monomorphism.html) |
 | IC monomorphic vs polymorphic vs megamorphic の数値 | T3 [builder.io](https://www.builder.io/blog/monomorphic-javascript)（Hevery 2023-02、条件込み。4-way ≈ 1.4× の canonical） / T2 [Meurer 2018 impact-of-polymorphism](https://benediktmeurer.de/2018/03/23/impact-of-polymorphism-on-component-based-frameworks-like-react/)（MEGAMORPHIC cliff の具体数値） |
