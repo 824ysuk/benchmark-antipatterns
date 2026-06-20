@@ -29,12 +29,14 @@
 | `.find(fn)` / `.filter(fn)` / `.some(fn)` / `.includes(x)` / `.indexOf(x)` | ループ外で `Map` / `Set` を構築して O(1) ルックアップに |
 | `reduce` 内の `{...acc, [key]: val}` | `acc[key] = val` で直接変更（初期値オブジェクトへの変更は安全） |
 | `reduce` 内の `acc.concat([item])` | `acc.push(item)` で直接変更 |
+| `.unshift(x)` をループ内で呼ぶ | ループ外で `push` → 最後に `reverse()`（または逆順ループで `push`） |
 
 ### 該当パターン
 
 - [ループ内 線形探索](../patterns/loop-linear-search/) — `find` をループ内で呼び O(n²)、Map 構築で O(n) に改善。改善比 **64×**（n=10,000）
 - [ループ内 includes → Set](../patterns/loop-includes-to-set/) — `includes` をループ内で呼び O(n²)、Set 構築で O(n) に改善。改善比 **42.6×**（n=10,000）
 - [reduce + スプレッド](../patterns/reduce-spread/) — `reduce` 内スプレッドが O(n²)、直接変更で O(n) に。改善比 **1,044×**（n=1,000）
+- [ループ内 unshift](../patterns/loop-unshift-to-push-reverse/) — 先頭挿入が O(n) なため N 回で O(n²)、push + reverse で O(n) に。改善比 **117×**（n=10,000）
 
 ### 一次情報
 
