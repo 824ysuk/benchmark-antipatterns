@@ -1,6 +1,6 @@
 # ボトルネック 3 カテゴリ
 
-このリポジトリのパターンは、根本原因が異なる 3 カテゴリに分類されます。ROOT README のカテゴリ列と、各パターン README の `カテゴリ:` メタデータはここにリンクされています。引用付きの一次情報もここに集約しています。
+このリポジトリのパターンは、根本原因が異なる 3 カテゴリに分類されます。ROOT README のカテゴリ列と、各パターン README の `カテゴリ:` メタデータはここにリンクされています。引用付きの一次情報は [docs/primary-sources.md](primary-sources.md) に Tier 別 (Tier 1: 公式 / spec、Tier 2: engine team、Tier 3: 信頼性ある二次、Tier 4: 理論) で集約されています。本ページの各カテゴリ末尾「### 一次情報」節は hub の該当 URL へ Tier 表記付きで誘導する形に統一されています。
 
 ---
 
@@ -40,9 +40,13 @@
 
 ### 一次情報
 
-- [Big-O Cheat Sheet](https://www.bigocheatsheet.com/) — 各データ構造・操作の計算量リファレンス
-- [The reduce spread Anti-Pattern — Rich Snapp](https://www.richsnapp.com/article/2019/06-09-reduce-spread-anti-pattern) — V8 バイトコードレベルで O(n²) になる理由の詳細解説
-- [Loop Performance Anti-Patterns: 40-Repository Scan — stackinsight.dev](https://stackinsight.dev/blog/loop-performance-empirical-study) — 実コードベース 40 リポジトリでの出現頻度調査
+詳細な Tier 別 URL リストは [docs/primary-sources.md](primary-sources.md) を参照。本カテゴリで主に参照するのは:
+
+- **Tier 4**: [Big-O Cheat Sheet](https://www.bigocheatsheet.com/) — 計算量リファレンス
+- **Tier 3**: [richsnapp.com — reduce-spread](https://www.richsnapp.com/article/2019/06-09-reduce-spread-anti-pattern) — V8 バイトコードレベル解説
+- **Tier 3**: [stackinsight.dev — 40-repository scan](https://stackinsight.dev/blog/loop-performance-empirical-study) — 実コードベース調査
+
+各 URL の Tier 区分・引用上の注意・撤回情報は hub を参照してください。
 
 ---
 
@@ -67,8 +71,12 @@
 
 ### 一次情報
 
-- [MDN: Promise.all()](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise/all) — 並列実行のセマンティクスと注意点
-- [Loop Performance Anti-Patterns: 40-Repository Scan — stackinsight.dev](https://stackinsight.dev/blog/loop-performance-empirical-study) — 非同期直列化パターンの実コードベースでの出現頻度
+詳細な Tier 別 URL リストは [docs/primary-sources.md](primary-sources.md) を参照。本カテゴリで主に参照するのは:
+
+- **Tier 3**: [MDN: Promise.all()](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise/all) — 並列実行のセマンティクス
+- **Tier 3**: [stackinsight.dev — 40-repository scan](https://stackinsight.dev/blog/loop-performance-empirical-study) — 非同期直列化パターンの実コードベース調査
+
+各 URL の Tier 区分・引用上の注意・撤回情報は hub を参照してください。
 
 ---
 
@@ -96,8 +104,12 @@
 
 ### 一次情報
 
-- [Loop Performance Anti-Patterns: 40-Repository Scan — stackinsight.dev](https://stackinsight.dev/blog/loop-performance-empirical-study) — 重複処理（duplicated work）の章
-- [Optimizing JavaScript — romgrk.com](https://romgrk.com/posts/optimizing-javascript) — V8 がループ不変式を自動で外に出さないケースの解説
+詳細な Tier 別 URL リストは [docs/primary-sources.md](primary-sources.md) を参照。本カテゴリで主に参照するのは:
+
+- **Tier 3**: [stackinsight.dev — 40-repository scan](https://stackinsight.dev/blog/loop-performance-empirical-study) — 重複処理（duplicated work）の章
+- **Tier 3**: [romgrk.com — optimizing-javascript](https://romgrk.com/posts/optimizing-javascript) — V8 がループ不変式を自動で外に出さないケースの解説 (補助参照)
+
+各 URL の Tier 区分・引用上の注意・撤回情報は hub を参照してください。
 
 ---
 
