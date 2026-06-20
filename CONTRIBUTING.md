@@ -8,6 +8,15 @@
 - JIT / オプティマイザが自動吸収しないパターンであること
 - 手元で動くベンチマークコードが添付されていること
 
+### 掲載しないパターンの判定理由
+
+以下に該当するパターンは掲載しません。個別の判定経緯・候補リスト・一次情報リンクは [Issue #12](https://github.com/824ysuk/benchmark-antipatterns/issues/12) に集約しています。
+
+- **engine 実装が条件依存で吸収しうる** — monomorphic feedback / elements kind 安定 / callback inline 成立等の前提が揃った場合に倍率が消失するパターン (例: `forEach`、`filter().map()` chain)
+- **engine 横断で値も向きも逆転する** — 同じ workload でも engine / version で速い側が逆になるパターン (例: `generator` vs `for` loop)
+- **version-specific で portable でない** — 特定 engine 特定 version のバグ・例外で、修正済または engine 開発元が「specific version 向けに最適化するな」と明言しているパターン
+- **9× 未達** — 教育的価値はあるが改善比が小さく本基準を満たさないパターン (例: spread 要素の位置依存 fast path、polymorphic IC の非線形劣化)
+
 ## 追加手順
 
 1. `patterns/slug/` ディレクトリを作成（番号なし・意味のあるスラッグのみ）
