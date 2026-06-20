@@ -86,4 +86,8 @@ benchmark('✅ ループ外 parse', () => {
 
 ## 参考
 
-- [カテゴリ解説: 重複処理 — docs/bottleneck-types.md](../../docs/bottleneck-types.md#重複処理) — 出典・引用を含む詳細解説
+引用 Tier は [docs/primary-sources.md](../../docs/primary-sources.md) 体系に従う（Tier 1: 公式 / spec、Tier 2: engine team、Tier 3: 信頼性ある二次、Tier 4: 理論）。
+
+- **Tier 3**: [Loop Performance Anti-Patterns: 40-Repository Scan — stackinsight.dev](https://stackinsight.dev/blog/loop-performance-empirical-study) — 重複処理（duplicated work）の章
+- **Tier 3**: [Optimizing JavaScript — romgrk.com](https://romgrk.com/posts/optimizing-javascript) — V8 がループ不変式を自動で外に出さないケースの解説
+- [カテゴリ解説: 重複処理 — docs/bottleneck-types.md](../../docs/bottleneck-types.md#重複処理)
