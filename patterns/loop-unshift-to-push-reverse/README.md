@@ -27,6 +27,8 @@ for (const entry of source) {
 
 ## ✅ 改善後
 
+> **前提**: 以下の改善案は配列を **mutate する** (`push` / `reverse` がいずれも破壊的)。React state / Redux reducer / Immer draft などの immutable context では、`setItems(prev => [newItem, ...prev])` のような spread ベースの prepend を使う (これは別物で本パターン対象外)。
+
 末尾に push して最後に 1 回 reverse する。全体 O(n)。
 
 ```typescript
@@ -81,8 +83,14 @@ benchmark('✅ push + reverse', () => {
 
 - 配列が小さい（n < 数百）と差は定数倍に埋もれる。プロファイルで確認してから適用する
 - 「先頭追加」自体が正しい設計（タイムライン逆順表示・操作履歴の最新優先・FIFO エンキュー）の場合、`push + reverse` への置換は semantics を壊す。N の規模に応じて自前 Deque を検討する
-- 自前 Deque は組み込み `Array` の memmove より定数倍遅いことが多い。中規模（数千〜数万）かつ両端操作が混在しない限り `push + reverse` のほうが速いことが多い
+- 自前 Deque は組み込み `Array` の memmove より定数倍遅いことが多い。中規模（数千〜数万）かつ両端操作が混在しない限り `push + reverse` のほうが速いことが多い。両端操作 (ring buffer / time-series window / tail viewer / streaming decoder) で本当に必要な場合は、capacity 拡張・iteration 順・JSON 直列化の罠を踏まないよう既存 OSS (例: `@datastructures-js/deque`) や typed-array ベースの ring buffer の利用を検討する
 - ブラウザ engine では挙動が異なる場合がある（JavaScriptCore は `ArrayStorage::m_indexBias` で amortized O(1) 化する歴史的経路を持つ）。本実測値は Node.js (V8) 前提
+- **A 案 (push + reverse) は `arr` が空である前提**。pre-existing 要素を持つ配列に適用すると、それらも `reverse` で逆転する。例: `['X','Y']` に `['a','b','c']` を unshift すると `['c','b','a','X','Y']` だが、push + reverse では `['c','b','a','Y','X']` になり X/Y も逆転する。既存要素がある場合は `arr = [...newItems.reverse(), ...arr]` を使う
+- **B 案 (逆順ループ + push) は `source` が Array (または length + 整数 index アクセス可能な array-like) であるときのみ使える**。Set / Map / generator / 任意の Iterable / AsyncIterator では silent empty 配列を返す（`Set.length` が `undefined` のため）。これらは A 案 (`for...of` + push) を使う
+- **B 案は string に対して surrogate pair を分割する**。`for...of` は code point 単位で iterate するが `source[i]` は code unit 単位で access するため、絵文字 (`'a😀b'`) を含む string で出力が壊れる。string には A 案を使う
+- **AsyncIterator (`for await...of`) では A 案のみ採用可能**。B 案は `source.length` 不在のため適用不可。WebSocket / SSE / DB cursor 等で `for await (const x of stream) arr.unshift(x)` する場合は A 案 (`arr.push(x)` の後にループ終了時 1 回 `arr.reverse()`)
+- **同一配列での自己参照 (`arr === source`) は元コード・改善案ともに未定義動作**。`for (const x of arr) arr.unshift(x)` は無限ループ / OOM。読み元と書き先を分けること
+- **イベント駆動の累積 (`onmessage` ハンドラ内の単発 `items.unshift(event.data)` 等) も session 全体で O(n²) になる**。構文的にループに見えないが累積回数が増えると同じ問題が発生する。長時間配信では deque や逆順表示 (末尾追加 + reverse-iteration での render) を検討
 
 ## 他言語での同等パターン
 
@@ -90,9 +98,9 @@ benchmark('✅ push + reverse', () => {
 |---|---|---|
 | Python | `list.insert(0, x)` | `collections.deque.appendleft` |
 | Java | `ArrayList.add(0, x)` | `ArrayDeque.addFirst` |
-| Go | `append([]T{x}, s...)` | `container/list` |
-| C# | `List.Insert(0, x)` | `LinkedList.AddFirst` |
-| Ruby | `Array#unshift` | （標準 Deque 同等なし、`Array#push` + `Array#reverse` 推奨）|
+| Go | `append([]T{x}, s...)` | 逆順 iterate + `append`（`container/list` は非 idiomatic で型安全性を失うため非推奨）|
+| C# | `List.Insert(0, x)` | `List<T>.Add` + `List<T>.Reverse()`（両端 O(1) が必要なら `LinkedList<T>.AddFirst`）|
+| Ruby | `Array#unshift` | `Array#push` + `Array#reverse`（標準 Deque 同等なし。MRI は `Array#shift` だけ amortized O(1) 最適化を持ち `unshift` は O(n)）|
 
 ## 参考
 
