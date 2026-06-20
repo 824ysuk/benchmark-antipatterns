@@ -29,6 +29,8 @@ for (const entry of source) {
 
 ## ✅ 改善後
 
+> **前提**: 以下の改善案は配列を **mutate する** (`push` / `reverse` がいずれも破壊的)。React state / Redux reducer / Immer draft などの immutable context では、`setItems(prev => [newItem, ...prev])` のような spread ベースの prepend を使う (これは別物で本パターン対象外)。
+
 末尾追加で組み立てて最後に 1 回反転する。`push` は amortized O(1)、`reverse` は in-place O(N)、合計 O(N)。
 
 ```typescript
@@ -91,6 +93,16 @@ V8 の階層実行（Ignition インタプリタ → Sparkplug / Maglev / TurboF
 - **自前 Deque が組み込み Array より遅いことがある**: Linked list / ring buffer の自前実装はオブジェクト割当・GC pressure・ポインタ追跡による cache miss を生む。N が中規模（数千〜数万）かつ両端操作が混在しない限り、`push + reverse` のほうが速いことが多い。Deque を選ぶ前にベンチで比較する。
 - **`new Array(N)` での事前確保は Big-O を変えない**: capacity hint は `push` の再確保償却には効くが、`unshift` のコストの本質は「既存要素を 1 つずつ後ろにずらす」要素移動なので、capacity を確保しても O(N²) のまま変わらない。
 - **エンジンによる収束ではないケース**: JavaScriptCore（JSC）の `ArrayStorage` は `m_indexBias` で先頭側余白を持ち、条件次第で `unshift` を amortized O(1) に近づける歴史的経路がある。「JS の `unshift` は全 engine で O(n)」とも「最適化される」とも断言せず、対象 engine ごとに計測する。
+- **`push + reverse` は `arr` が空である前提**: pre-existing 要素を持つ配列に適用すると、それらも `reverse` で逆転する。例: `['X','Y']` に `['a','b','c']` を unshift すると `['c','b','a','X','Y']` だが、push + reverse では `['c','b','a','Y','X']` になり X/Y も逆転する。既存要素がある場合は `arr = [...newItems.reverse(), ...arr]` を使う。
+- **逆順ループ + push は `source` が Array (または length + 整数 index アクセス可能な array-like) であるときのみ使える**: Set / Map / generator / 任意の Iterable / AsyncIterator では silent empty 配列を返す（`Set.length` が `undefined` のため）。これらは `for...of` + `push` + 最後に `reverse` を使う。
+- **逆順ループ + push は string に対して surrogate pair を分割する**: `for...of` は code point 単位で iterate するが `source[i]` は code unit 単位で access するため、絵文字 (`'a😀b'`) を含む string で出力が壊れる。string には `for...of` + `push` + `reverse` を使う。
+- **`AsyncIterator` (`for await...of`) では `push + reverse` のみ採用可能**: 逆順ループ + push は `source.length` 不在のため適用不可。WebSocket / SSE / DB cursor 等で `for await (const x of stream) arr.unshift(x)` する場合は `push` の後にループ終了時 1 回 `reverse`。
+- **同一配列での自己参照 (`arr === source`) は元コード・改善案ともに未定義動作**: `for (const x of arr) arr.unshift(x)` は無限ループ / OOM。読み元と書き先を分けること。
+- **例外発生時の途中状態が元コードと異なる**: 元 (`unshift`) は途中までの要素が正しい newest-first 順で `arr` に残る。`push + reverse` は途中で例外が起きると `reverse` 前で停止するため oldest-first で残る。`catch` 内で `arr` を観察するコード (UI 表示・ログ・recovery) は挙動が変わる。
+- **ループ中に `source` を伸縮させる場合は逆順ループ + push が使えない**: 開始時の `source.length` をキャッシュするため、ループ中に他コード（またはループ本体）が `source.push` / `splice` しても見えない。`for...of` の Array iterator は live length を見るため挙動が異なる。
+- **`source` が `[Symbol.iterator]` を override している (filtering iterator 等) 場合は逆順ループ + push が使えない**: raw index access のため iterator override を無視する。`FilteredArray` のような subclass や `Symbol.iterator` を返す Proxy には `for...of` + `push` + `reverse`。
+- **ループ中に `arr` を他コードが読む (Proxy / async / getter) 場合、`push + reverse` は中間状態の順序が逆**: 元は newest-first prefix を常に維持するが、`push + reverse` は `reverse()` 完了前 oldest-first を露出する。観察者がいる場合は元の `unshift` を保つか、ループ全体を critical section で囲う。
+- **イベント駆動の累積も session 全体で O(n²)**: `onmessage` ハンドラ内の単発 `items.unshift(event.data)` 等、構文的にループに見えないが累積回数が増えると同じ問題が発生する。長時間配信では deque や逆順表示 (末尾追加 + reverse-iteration での render) を検討。
 
 ## 他言語での同等パターン
 
@@ -98,8 +110,9 @@ V8 の階層実行（Ignition インタプリタ → Sparkplug / Maglev / TurboF
 |---|---|---|
 | Python | `list.append()` + `list.reverse()` または `collections.deque.appendleft()` | `list.insert(0, x)` がループ内呼び出しで同じ問題（CPython の list は連続メモリ配列） |
 | Java | `ArrayDeque.addFirst()` | `ArrayList.add(0, x)` がループ内呼び出しで同じ問題 |
-| Go | `append` + 末尾構築 → 逆順走査 | slice の先頭挿入 `append([]T{x}, s...)` がループ内で同じ問題 |
-| Ruby | `Array#push` + `Array#reverse!` | `Array#unshift` のループ内呼び出しが同じ問題 |
+| Go | `append` + 末尾構築 → 逆順走査 | slice の先頭挿入 `append([]T{x}, s...)` がループ内で同じ問題。`container/list` は型安全性を失うため idiomatic Go では非推奨。`slices.Insert` (Go 1.21+) も O(N) で本問題を解決しない |
+| C# | `List<T>.Add` + `List<T>.Reverse()` | `List.Insert(0, x)` がループ内呼び出しで同じ問題。両端 O(1) が必要なら `LinkedList<T>.AddFirst` だが cache locality が悪く BCL では非推奨 |
+| Ruby | `Array#push` + `Array#reverse!` | `Array#unshift` のループ内呼び出しが同じ問題。MRI Ruby は `Array#shift` だけ amortized O(1) 最適化 (head-offset) を持ち `Array#unshift` は依然 O(n) という asymmetric な事情がある |
 
 ## 参考
 
