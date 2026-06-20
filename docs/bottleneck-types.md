@@ -29,12 +29,14 @@
 | `.find(fn)` / `.filter(fn)` / `.some(fn)` / `.includes(x)` / `.indexOf(x)` | ループ外で `Map` / `Set` を構築して O(1) ルックアップに |
 | `reduce` 内の `{...acc, [key]: val}` | `acc[key] = val` で直接変更（初期値オブジェクトへの変更は安全） |
 | `reduce` 内の `acc.concat([item])` | `acc.push(item)` で直接変更 |
+| ORM の `include` / `eager_load` を to-many 2 段以上ネスト | `relationLoadStrategy: "query"` または手動 preload + Map 結合（行の掛け算を加算に） |
 
 ### 該当パターン
 
 - [ループ内 線形探索](../patterns/loop-linear-search/) — `find` をループ内で呼び O(n²)、Map 構築で O(n) に改善。改善比 **64×**（n=10,000）
 - [ループ内 includes → Set](../patterns/loop-includes-to-set/) — `includes` をループ内で呼び O(n²)、Set 構築で O(n) に改善。改善比 **42.6×**（n=10,000）
 - [reduce + スプレッド](../patterns/reduce-spread/) — `reduce` 内スプレッドが O(n²)、直接変更で O(n) に。改善比 **1,044×**（n=1,000）
+- [ORM ネスト include のカルテシアン爆発](../patterns/orm-eager-loading-explosion/) — to-many 2 段以上ネストで行が掛け算に膨張、独立 SELECT + Map 結合で加算に。改善比 **41×**（Prisma 6 + PG）
 
 ### 一次情報
 
