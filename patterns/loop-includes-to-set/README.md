@@ -87,3 +87,4 @@ benchmark('✅ Set.has ループ', () => {
 ## 参考
 
 - [カテゴリ解説: 計算量の無駄 — docs/bottleneck-types.md](../../docs/bottleneck-types.md#計算量の無駄) — 出典・引用を含む詳細解説
+- 一次情報の Tier 別 URL hub: [docs/primary-sources.md](../../docs/primary-sources.md) — 本パターンに関連する主題は「ループ内線形探索 / O(n²)」行を参照

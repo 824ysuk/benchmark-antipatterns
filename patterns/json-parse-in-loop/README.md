@@ -87,3 +87,4 @@ benchmark('✅ ループ外 parse', () => {
 ## 参考
 
 - [カテゴリ解説: 重複処理 — docs/bottleneck-types.md](../../docs/bottleneck-types.md#重複処理) — 出典・引用を含む詳細解説
+- 一次情報の Tier 別 URL hub: [docs/primary-sources.md](../../docs/primary-sources.md) — 本パターンに関連する主題は「重複処理 / ループ不変式」行を参照

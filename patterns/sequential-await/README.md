@@ -79,4 +79,4 @@ const ids = Array.from({ length: 20 }, (_, i) => i);
 ## 参考
 
 - [カテゴリ解説: 非同期の直列化 — docs/bottleneck-types.md](../../docs/bottleneck-types.md#非同期の直列化) — 出典・引用を含む詳細解説
-- [MDN: Promise.all()](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise/all)
+- 一次情報の Tier 別 URL hub: [docs/primary-sources.md](../../docs/primary-sources.md) — 本パターンに関連する主題は「非同期の直列化 / `Promise.all`」行を参照 (Tier 3: MDN Promise.all / stackinsight.dev)
