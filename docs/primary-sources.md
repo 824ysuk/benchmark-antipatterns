@@ -85,6 +85,13 @@ V8 team の現職・元職メンバーが個人 blog で発表した記事。Tie
 | [romgrk.com — optimizing-javascript](https://romgrk.com/posts/optimizing-javascript) | V8 内部最適化の俯瞰（補助参照。一次断定には使わない） |
 | [github.com/davidmarkclements/v8-perf](https://github.com/davidmarkclements/v8-perf) | V8 6.0 / 6.1 fast path、Node コミュニティ参照（旧バージョン情報。current V8 と差異あり） |
 | [use-the-index-luke.com](https://use-the-index-luke.com/) | SQL indexing と performance の体系的解説（DB 横断: PostgreSQL / MySQL / Oracle / SQL Server。著者 Markus Winand。引用時は対象 DB を併記） |
+| [tanstack.com/query — Query Keys](https://tanstack.com/query/latest/docs/framework/react/guides/query-keys) | TanStack Query v5 の queryKey deterministic hashing 仕様（plain object key 順序吸収・JSON.stringify 前提） |
+| [github.com/TanStack/query — query-core/src/utils.ts](https://github.com/TanStack/query/blob/main/packages/query-core/src/utils.ts) | `hashKey`: JSON.stringify + plain object key sort の実装 source（v5 main） |
+| [tkdodo.eu — Effective React Query Keys](https://tkdodo.eu/blog/effective-react-query-keys) | TanStack Query maintainer (tkdodo) の Query Key Factory パターン解説 |
+| [swr.vercel.app — Arguments](https://swr.vercel.app/docs/arguments) | SWR 1.1.0 以降の object key auto-serialize 仕様 |
+| [redux-toolkit.js.org — createApi (serializeQueryArgs)](https://redux-toolkit.js.org/rtk-query/api/createApi) | RTK Query の serializeQueryArgs 仕様（sort + stringify + endpoint 名連結） |
+| [apollographql.com — Cache Configuration](https://www.apollographql.com/docs/react/caching/cache-configuration) | Apollo Client の cache normalization (`__typename:id`) と operation variables serialization の分離 |
+| [nearform.com — urql Document Caching](https://nearform.com/open-source/urql/docs/basics/document-caching/) | urql の document AST + variables hash 仕様 |
 
 ---
 
@@ -132,6 +139,7 @@ pattern や docs で「この主題の根拠は？」と聞かれたときに参
 | 非同期並列化（`Promise.all`） | T4 [MDN: Promise.all](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise/all)（補助。仕様は ECMA-262 §27.2.4.3） |
 | PostgreSQL B-tree index / seq scan / EXPLAIN | T1 [Indexes](https://www.postgresql.org/docs/current/indexes.html) / T1 [Index Types](https://www.postgresql.org/docs/current/indexes-types.html) / T1 [Using EXPLAIN](https://www.postgresql.org/docs/current/using-explain.html) / T3 [use-the-index-luke](https://use-the-index-luke.com/)（DB 横断） |
 | reduce + spread / loop-invariant の解説 | T3 [richsnapp.com](https://www.richsnapp.com/article/2019/06-09-reduce-spread-anti-pattern) / T3 [romgrk.com](https://romgrk.com/posts/optimizing-javascript)（V8 がループ不変式を自動で外に出さないケース） |
+| クライアントキャッシュの queryKey hashing | T3 [TanStack Query — Query Keys](https://tanstack.com/query/latest/docs/framework/react/guides/query-keys) / T3 [hashKey source](https://github.com/TanStack/query/blob/main/packages/query-core/src/utils.ts) / T3 [tkdodo — Effective React Query Keys](https://tkdodo.eu/blog/effective-react-query-keys) / T3 [SWR — Arguments](https://swr.vercel.app/docs/arguments) / T3 [RTK Query — createApi](https://redux-toolkit.js.org/rtk-query/api/createApi) / T3 [Apollo — Cache Configuration](https://www.apollographql.com/docs/react/caching/cache-configuration) / T3 [urql — Document Caching](https://nearform.com/open-source/urql/docs/basics/document-caching/) |
 
 ---
 

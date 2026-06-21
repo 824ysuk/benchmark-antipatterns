@@ -99,12 +99,14 @@
 | 定数の計算（`Math.sqrt(N)` 等） | ループ外の変数に保持 |
 | DOM クエリ（`document.getElementById`）を毎回実行 | ループ外で参照を保持 |
 | 同じ設定ファイルの読み込みを毎回実行 | ループ外でキャッシュ |
+| `useQuery` / cache を不安定 key（UUID / Date.now / 毎回新 object）で毎レンダー呼ぶ | 不安定値を queryKey から除外し primitive のみで構成（[Query Key Factory パターン](https://tkdodo.eu/blog/effective-react-query-keys)） |
 
 「ループ内の他パターン」の具体例一覧は [ループ内 JSON.parse — 同カテゴリの他パターン](../patterns/json-parse-in-loop/#同カテゴリの他パターンループ外移出) を参照してください。
 
 ### 該当パターン
 
 - [ループ内 JSON.parse](../patterns/json-parse-in-loop/) — O(n × parse) → O(parse + n)。改善比 **46×**（n=100,000）
+- [不安定な cache key による cache miss 永続化](../patterns/unstable-cache-key/) — O(n × fetch) → O(fetch + n)。改善比 **89.2×**（n=1,000、Node v24 / M5 Pro。Issue 本文の Node v20 報告では 251×）
 
 ### 一次情報
 
