@@ -10,12 +10,13 @@
 
 ### 掲載しないパターンの判定理由
 
-以下に該当するパターンは掲載しません。個別の判定経緯・候補リスト・一次情報リンクは [Issue #12](https://github.com/824ysuk/benchmark-antipatterns/issues/12) に集約しています。
+以下に該当するパターンは掲載しません。
 
 - **engine 実装が条件依存で吸収しうる** — monomorphic feedback / elements kind 安定 / callback inline 成立等の前提が揃った場合に倍率が消失するパターン (例: `forEach`、`filter().map()` chain)
 - **engine 横断で値も向きも逆転する** — 同じ workload でも engine / version で速い側が逆になるパターン (例: `generator` vs `for` loop)
 - **version-specific で portable でない** — 特定 engine 特定 version のバグ・例外で、修正済または engine 開発元が「specific version 向けに最適化するな」と明言しているパターン
 - **9× 未達** — 教育的価値はあるが改善比が小さく本基準を満たさないパターン (例: spread 要素の位置依存 fast path、polymorphic IC の非線形劣化)
+- **JIT 内部表現劣化系で 9× 構造的未達** — V8 hidden class / Elements Kinds の退化 (`delete` 演算子 / sparse 配列 / 動的プロパティ追加) は canonical な workload で 1.4-3.5× の constant factor 劣化にとどまり、9× 達成は pathological case (stub cache overflow 等) でのみ再現可能。V8 6.0+ fast path / `MigrateSlowToFast` / Swiss Table で engine 側の継続吸収も進行中。JIT 内部理解は [docs/primary-sources.md](docs/primary-sources.md) Tier 1 (V8 公式) / Tier 2 (Mathias Bynens / Benedikt Meurer) を参照
 
 ## 追加手順
 

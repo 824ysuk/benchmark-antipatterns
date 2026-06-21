@@ -10,7 +10,7 @@
 - **ランタイムが吸収しないものだけ**: engine 実装が条件依存で吸収する / engine 横断で値も向きも逆転する / version-specific なパターンは除外
   - 例 (engine 実装が条件依存で吸収しうる): `forEach` vs `for` / `filter().map()` vs `reduce` / アロー関数 vs `function` 宣言
   - 例 (engine 横断で値も向きも逆転 / 非線形劣化 / position 依存): `generator` vs `for` ループ / megamorphic IC の非線形劣化 / spread 要素の位置依存 fast path
-  - 個別の判定理由は [Issue #12](https://github.com/824ysuk/benchmark-antipatterns/issues/12) を参照
+  - 例 (JIT 内部表現劣化で 9× 構造的未達): `delete` 演算子による fast properties → dictionary mode 転落、sparse 配列の Elements Kinds 劣化、動的プロパティ追加による hidden class 不一致
 - **手元で検証できる**: 各パターンにコピー&ペーストで動くベンチマークコードを添付
 
 ## スコープ
