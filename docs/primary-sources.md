@@ -44,6 +44,18 @@ TC39 が公開する JavaScript 仕様。本 repo での「仕様要件」の唯
 
 注: ECMA-262 section 番号は draft 改訂で再番号化される。引用時は **current draft の番号と edition 年を両方併記**する（例: `§23.1.3.37 (current draft) / §23.1.3.32 (ES2022)`）。引用日も併記すると将来の差分追跡が楽になる。
 
+## Tier 1: PostgreSQL 公式 (RDBMS spec / docs)
+
+PostgreSQL global development group が公開する公式 documentation。本 repo の DB 系パターンでの「仕様 / planner 動作」の唯一の根拠。
+
+| URL | 主題 |
+|---|---|
+| [postgresql.org/docs/current/indexes.html](https://www.postgresql.org/docs/current/indexes.html) | Chapter 11. Indexes — B-tree / Hash / GiST / SP-GiST / GIN / BRIN の使い分けと planner 動作根拠 |
+| [postgresql.org/docs/current/indexes-types.html](https://www.postgresql.org/docs/current/indexes-types.html) | §11.2 Index Types — 6 種類の index の operator サポートと使用例 |
+| [postgresql.org/docs/current/using-explain.html](https://www.postgresql.org/docs/current/using-explain.html) | §14.1 Using EXPLAIN — `EXPLAIN (ANALYZE, BUFFERS)` の plan 読み方 (Seq Scan / Index Scan / Bitmap Heap Scan 等) |
+
+注: URL は `/docs/current/` で書く (将来 version up に自動追従)。引用時に検証した version を併記すると経年差分が追えるが、本 hub では URL は current 固定で保持する。
+
 ---
 
 ## Tier 2: V8 team member / 著名 perf エンジニア (primary 相当)
@@ -72,6 +84,7 @@ V8 team の現職・元職メンバーが個人 blog で発表した記事。Tie
 | [richsnapp.com — reduce-spread](https://www.richsnapp.com/article/2019/06-09-reduce-spread-anti-pattern) | reduce + spread が V8 バイトコードレベルで O(n²) になる理由 |
 | [romgrk.com — optimizing-javascript](https://romgrk.com/posts/optimizing-javascript) | V8 内部最適化の俯瞰（補助参照。一次断定には使わない） |
 | [github.com/davidmarkclements/v8-perf](https://github.com/davidmarkclements/v8-perf) | V8 6.0 / 6.1 fast path、Node コミュニティ参照（旧バージョン情報。current V8 と差異あり） |
+| [use-the-index-luke.com](https://use-the-index-luke.com/) | SQL indexing と performance の体系的解説（DB 横断: PostgreSQL / MySQL / Oracle / SQL Server。著者 Markus Winand。引用時は対象 DB を併記） |
 
 ---
 
@@ -117,6 +130,7 @@ pattern や docs で「この主題の根拠は？」と聞かれたときに参
 | `forEach` inlining | T1 [v8-release-65](https://v8.dev/blog/v8-release-65)（V8 6.5 で `JSCallReducer` 経由） |
 | ループ性能の実証スキャン | T3 [stackinsight.dev](https://stackinsight.dev/blog/loop-performance-empirical-study) |
 | 非同期並列化（`Promise.all`） | T4 [MDN: Promise.all](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise/all)（補助。仕様は ECMA-262 §27.2.4.3） |
+| PostgreSQL B-tree index / seq scan / EXPLAIN | T1 [Indexes](https://www.postgresql.org/docs/current/indexes.html) / T1 [Index Types](https://www.postgresql.org/docs/current/indexes-types.html) / T1 [Using EXPLAIN](https://www.postgresql.org/docs/current/using-explain.html) / T3 [use-the-index-luke](https://use-the-index-luke.com/)（DB 横断） |
 | reduce + spread / loop-invariant の解説 | T3 [richsnapp.com](https://www.richsnapp.com/article/2019/06-09-reduce-spread-anti-pattern) / T3 [romgrk.com](https://romgrk.com/posts/optimizing-javascript)（V8 がループ不変式を自動で外に出さないケース） |
 
 ---
