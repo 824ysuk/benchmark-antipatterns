@@ -61,11 +61,12 @@
 
 ## 実測値（参考）
 
-| 条件 | 改善前 | 改善後 | 倍率 |
-|---|---|---|---|
-| n = X | Y ms | Z ms | **N×** |
+| 条件 | engine / version | n | 改善前 | 改善後 | 倍率 |
+|---|---|---|---|---|---|
+| <条件> | Node vX.Y / V8 Z.W | X | Y ms | Z ms | **N×** |
 
 > 結果は実行環境・ハードウェアによって変わります。同じ環境で改善前後を比較することが重要です。
+> 単一値での倍率断言（「9× である」等）はせず、engine / version / workload / n を必ず併記してください。記載例は [loop-unshift の実測値ブロック](../loop-unshift/README.md#実測値参考) を参照。
 
 ## 注意・例外
 
@@ -73,12 +74,17 @@
 
 ## 参考
 
-- [タイトル](URL)
+引用 Tier は [docs/primary-sources.md](../../docs/primary-sources.md) 体系に従う（Tier 1: 公式 / spec、Tier 2: engine team、Tier 3: 信頼性ある二次、Tier 4: 理論）。
+
+- **Tier N**: [タイトル](URL) — 説明
+- [カテゴリ解説: <カテゴリ> — docs/bottleneck-types.md](../../docs/bottleneck-types.md#<カテゴリ>)
 ```
 
 ## 計測ヘルパー
 
 各ベンチマークコードを実行する前に、ブラウザの DevTools Console または Node.js（v16+）で定義してください。
+
+これは **sync 関数向けの最小実装** で、warmup・DCE 回避・p95/std を持たない教材用です。async pattern（DB query / network / cache / `await` ループ系）や DB / 外部 process 系（bash + psql 等）では各パターンの bench 実装が inline で独自 harness を持ちます。
 
 ```javascript
 function benchmark(label, fn, iterations = 10) {
@@ -94,3 +100,12 @@ function benchmark(label, fn, iterations = 10) {
   return median;
 }
 ```
+
+warmup（JIT tier 到達狙い）/ DCE 回避（`globalThis.__bench_sink` への escape）/ median + p95 + std 出力が必要な場合は、各パターンの bench 実装を参照してください。
+
+- sync + warmup + p95/std を含む参照実装: [patterns/loop-unshift/bench.ts](patterns/loop-unshift/bench.ts)
+- async (Node + Prisma + inline async harness): [patterns/orm-eager-loading-explosion/](patterns/orm-eager-loading-explosion/)
+- 不安定 cache key の inline async (process.hrtime + sink escape): [patterns/unstable-cache-key/](patterns/unstable-cache-key/)
+- 外部 process (bash + psql + EXPLAIN ANALYZE): [patterns/postgres-seq-scan/](patterns/postgres-seq-scan/)
+
+実測値を README に書く際は、Node version / V8 version / n / iterations を必ず併記し、単一値の倍率断言（「9× である」等）を避けてください。
