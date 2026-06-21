@@ -10,7 +10,7 @@
 
 ### 掲載しないパターンの判定理由
 
-以下に該当するパターンは掲載しません。個別の判定経緯・候補リスト・一次情報リンクは [Issue #12](https://github.com/824ysuk/benchmark-antipatterns/issues/12) に集約しています。
+以下に該当するパターンは掲載しません。
 
 - **engine 実装が条件依存で吸収しうる** — monomorphic feedback / elements kind 安定 / callback inline 成立等の前提が揃った場合に倍率が消失するパターン (例: `forEach`、`filter().map()` chain)
 - **engine 横断で値も向きも逆転する** — 同じ workload でも engine / version で速い側が逆になるパターン (例: `generator` vs `for` loop)
