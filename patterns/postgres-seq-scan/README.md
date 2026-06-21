@@ -77,6 +77,8 @@ docker exec -i bap-pg-bench psql -U postgres < setup.sql
 
 ```bash
 bash bench.sh
+# 反復回数を変えたい場合 (既定: 5 反復、cold cache を 1 回捨てて 4 値の median):
+RUNS=10 bash bench.sh
 ```
 
 `bench.sh` は以下を行う:
