@@ -99,7 +99,7 @@
 - [カテゴリ解説: <カテゴリ> — docs/bottleneck-types.md](../../docs/bottleneck-types.md#<カテゴリ>)
 ```
 
-## 計測ヘルパー (sync 関数向け)
+## 計測ヘルパー
 
 各ベンチマークコードを実行する前に、ブラウザの DevTools Console または Node.js（v16+）で定義してください。これは sync 関数向けの最小実装 (教材用) で、warmup・DCE 回避・p95/std を持ちません。設計指針および非 sync パターン向けの参照実装は [§設計指針](#設計指針-bench--helper--引用) を参照。
 
