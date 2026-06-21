@@ -8,7 +8,7 @@
 - JIT / オプティマイザが自動吸収しないパターンであること
 - 手元で動くベンチマークコードが添付されていること
 
-### 掲載しないパターンの判定理由
+## 掲載しないパターンの判定理由
 
 以下に該当するパターンは掲載しません。
 
@@ -17,6 +17,24 @@
 - **version-specific で portable でない** — 特定 engine 特定 version のバグ・例外で、修正済または engine 開発元が「specific version 向けに最適化するな」と明言しているパターン
 - **9× 未達** — 教育的価値はあるが改善比が小さく本基準を満たさないパターン (例: spread 要素の位置依存 fast path、polymorphic IC の非線形劣化)
 - **JIT 内部表現劣化系で 9× 構造的未達** — V8 hidden class / Elements Kinds の退化 (`delete` 演算子 / sparse 配列 / 動的プロパティ追加) は canonical な workload で 1.4-3.5× の constant factor 劣化にとどまり、9× 達成は pathological case (stub cache overflow 等) でのみ再現可能。V8 6.0+ fast path / `MigrateSlowToFast` / Swiss Table で engine 側の継続吸収も進行中。JIT 内部理解は [docs/primary-sources.md](docs/primary-sources.md) Tier 1 (V8 公式) / Tier 2 (Mathias Bynens / Benedikt Meurer) を参照
+
+## 設計指針 (bench / helper / 引用)
+
+パターン投稿の bench / helper / 引用の書き方は以下の原則に従います。
+
+- **serious helper は別ファイル**: warmup・DCE 回避・p95/std 等を含む計測 helper はパターンディレクトリ内の `bench.ts` / `bench.sh` に実装し、CONTRIBUTING の共通 helper には載せない
+- **inline は minimal**: パターン README に貼る計測コードは「コア比較」のみに留め、詳細実装は同ディレクトリの `bench.*` を参照する形にする
+- **単一倍率断言禁止**: 「9× である」と書かず、Node version / V8 / n / iterations / elements kind を条件併記する (記載例: [loop-unshift の実測値ブロック](patterns/loop-unshift/README.md#実測値参考))
+- **helper sync 前提逸脱は許容**: 後述の `benchmark()` helper は **sync 関数向けの最小実装** で、async pattern (DB query / network / cache / `await` ループ系) や DB / 外部 process 系 (bash + psql 等) では各パターンの bench 実装が inline で独自 harness を持つ
+
+### 参照実装一覧
+
+| パターン軸 | 参照 |
+|---|---|
+| sync + warmup + p95/std | [patterns/loop-unshift/bench.ts](patterns/loop-unshift/bench.ts) |
+| async (Node + Prisma + inline async harness) | [patterns/orm-eager-loading-explosion/](patterns/orm-eager-loading-explosion/) |
+| 不安定 cache key (process.hrtime + sink escape) | [patterns/unstable-cache-key/](patterns/unstable-cache-key/) |
+| 外部 process (bash + psql + EXPLAIN ANALYZE) | [patterns/postgres-seq-scan/](patterns/postgres-seq-scan/) |
 
 ## 追加手順
 
@@ -81,11 +99,9 @@
 - [カテゴリ解説: <カテゴリ> — docs/bottleneck-types.md](../../docs/bottleneck-types.md#<カテゴリ>)
 ```
 
-## 計測ヘルパー
+## 計測ヘルパー (sync 関数向け)
 
-各ベンチマークコードを実行する前に、ブラウザの DevTools Console または Node.js（v16+）で定義してください。
-
-これは **sync 関数向けの最小実装** で、warmup・DCE 回避・p95/std を持たない教材用です。async pattern（DB query / network / cache / `await` ループ系）や DB / 外部 process 系（bash + psql 等）では各パターンの bench 実装が inline で独自 harness を持ちます。
+各ベンチマークコードを実行する前に、ブラウザの DevTools Console または Node.js（v16+）で定義してください。これは sync 関数向けの最小実装 (教材用) で、warmup・DCE 回避・p95/std を持ちません。設計指針および非 sync パターン向けの参照実装は [§設計指針](#設計指針-bench--helper--引用) を参照。
 
 ```javascript
 function benchmark(label, fn, iterations = 10) {
@@ -101,12 +117,3 @@ function benchmark(label, fn, iterations = 10) {
   return median;
 }
 ```
-
-warmup（JIT tier 到達狙い）/ DCE 回避（`globalThis.__bench_sink` への escape）/ median + p95 + std 出力が必要な場合は、各パターンの bench 実装を参照してください。
-
-- sync + warmup + p95/std を含む参照実装: [patterns/loop-unshift/bench.ts](patterns/loop-unshift/bench.ts)
-- async (Node + Prisma + inline async harness): [patterns/orm-eager-loading-explosion/](patterns/orm-eager-loading-explosion/)
-- 不安定 cache key の inline async (process.hrtime + sink escape): [patterns/unstable-cache-key/](patterns/unstable-cache-key/)
-- 外部 process (bash + psql + EXPLAIN ANALYZE): [patterns/postgres-seq-scan/](patterns/postgres-seq-scan/)
-
-実測値を README に書く際は、Node version / V8 version / n / iterations を必ず併記し、単一値の倍率断言（「9× である」等）を避けてください。
