@@ -16,6 +16,7 @@
 - **engine 横断で値も向きも逆転する** — 同じ workload でも engine / version で速い側が逆になるパターン (例: `generator` vs `for` loop)
 - **version-specific で portable でない** — 特定 engine 特定 version のバグ・例外で、修正済または engine 開発元が「specific version 向けに最適化するな」と明言しているパターン
 - **9× 未達** — 教育的価値はあるが改善比が小さく本基準を満たさないパターン (例: spread 要素の位置依存 fast path、polymorphic IC の非線形劣化)
+- **JIT 内部表現劣化系で 9× 構造的未達** — V8 hidden class / Elements Kinds の退化 (`delete` 演算子 / sparse 配列 / 動的プロパティ追加) は canonical な workload で 1.4-3.5× の constant factor 劣化にとどまり、9× 達成は pathological case (stub cache overflow 等) でのみ再現可能。V8 6.0+ fast path / `MigrateSlowToFast` / Swiss Table で engine 側の継続吸収も進行中 (3 ヶ月議論で 9× workload 発見に至らず 2026-06-21 [Issue #9](https://github.com/824ysuk/benchmark-antipatterns/issues/9) / [Issue #10](https://github.com/824ysuk/benchmark-antipatterns/issues/10) / [Issue #11](https://github.com/824ysuk/benchmark-antipatterns/issues/11) を scope 外として close)。JIT 内部理解は [docs/primary-sources.md](docs/primary-sources.md) Tier 1 (V8 公式) / Tier 2 (Mathias Bynens / Benedikt Meurer) を参照
 
 ## 追加手順
 
