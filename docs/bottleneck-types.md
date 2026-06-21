@@ -31,6 +31,7 @@
 | `reduce` 内の `acc.concat([item])` | `acc.push(item)` で直接変更 |
 | ORM の `include` / `eager_load` を to-many 2 段以上ネスト | `relationLoadStrategy: "query"` または手動 preload + Map 結合（行の掛け算を加算に） |
 | 配列先頭への `.unshift()` の繰り返し | `push` + 最後に `reverse`、または逆順構築 |
+| `EXPLAIN` で `Seq Scan` + 高 selectivity の `WHERE col = '...'`（B-tree index 不在） | `CREATE INDEX ON table (col)` で B-tree O(log n) lookup に。selectivity < 1% の point lookup で効果大 |
 
 ### 該当パターン
 
@@ -39,6 +40,7 @@
 - [reduce + スプレッド](../patterns/reduce-spread/) — `reduce` 内スプレッドが O(n²)、直接変更で O(n) に。改善比 **1,044×**（n=1,000）
 - [ORM ネスト include のカルテシアン爆発](../patterns/orm-eager-loading-explosion/) — to-many 2 段以上ネストで行が掛け算に膨張、独立 SELECT + Map 結合で加算に。改善比 **41×**（Prisma 6 + PG）
 - [ループ内 unshift](../patterns/loop-unshift/) — 先頭挿入が要素全シフトで O(n²)、push + reverse で O(n) に改善。改善比 **207.8×**（n=10,000）
+- [PostgreSQL seq scan](../patterns/postgres-seq-scan/) — index 不在 column への point lookup が O(n) seq scan、B-tree index 追加で O(log n) に。改善比 **433.7×**（PG 16 / 1M rows、point lookup 限定。low selectivity 2% は 1.9× にとどまる）
 
 ### 一次情報
 
