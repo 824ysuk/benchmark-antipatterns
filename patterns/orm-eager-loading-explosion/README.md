@@ -196,9 +196,11 @@ Rails の語彙が最も明確で、Prisma `include`（default）は Rails の `
 
 ## 参考
 
-- [カテゴリ解説: 計算量の無駄 — docs/bottleneck-types.md](../../docs/bottleneck-types.md#計算量の無駄) — 出典・引用を含む詳細解説
-- [Cartesian explosion — Wikipedia](https://en.wikipedia.org/wiki/Cartesian_explosion)
-- [The best way to fix the Hibernate MultipleBagFetchException — Vlad Mihalcea](https://vladmihalcea.com/hibernate-multiplebagfetchexception/)
-- [Database vs Application: Demystifying JOIN Strategies — Prisma Blog](https://www.prisma.io/blog/database-vs-application-demystifying-join-strategies)
-- [prisma/prisma#23139 — Postgres Query Performance Suffering with relationJoins toggled on](https://github.com/prisma/prisma/issues/23139)
-- [prisma/prisma#22596 — High Performance Overhead with relationJoins preview feature in Nested Joins](https://github.com/prisma/prisma/issues/22596)
+引用 Tier は [docs/primary-sources.md](../../docs/primary-sources.md) 体系に従う（Tier 1: 公式 / spec、Tier 2: engine team、Tier 3: 信頼性ある二次、Tier 4: 理論）。
+
+- **Tier 3**: [The best way to fix the Hibernate MultipleBagFetchException — Vlad Mihalcea](https://vladmihalcea.com/hibernate-multiplebagfetchexception/) — Hibernate での同型問題と解決策の解説（Java/Hibernate コミュニティの定番参照）
+- **Tier 3**: [Database vs Application: Demystifying JOIN Strategies — Prisma Blog](https://www.prisma.io/blog/database-vs-application-demystifying-join-strategies) — Prisma 公式 blog (relationJoins と application-level join の比較)
+- **Tier 3**: [prisma/prisma#23139 — Postgres Query Performance Suffering with relationJoins toggled on](https://github.com/prisma/prisma/issues/23139) — relationJoins の性能問題のコミュニティ報告
+- **Tier 3**: [prisma/prisma#22596 — High Performance Overhead with relationJoins preview feature in Nested Joins](https://github.com/prisma/prisma/issues/22596) — Nested Joins での性能オーバーヘッド報告
+- **Tier 4**: [Cartesian explosion — Wikipedia](https://en.wikipedia.org/wiki/Cartesian_explosion) — カルテシアン爆発概念の理論的背景
+- [カテゴリ解説: 計算量の無駄 — docs/bottleneck-types.md](../../docs/bottleneck-types.md#計算量の無駄)
