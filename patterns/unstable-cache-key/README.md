@@ -8,7 +8,7 @@
 
 > カテゴリの詳細解説は [docs/bottleneck-types.md#重複処理](../../docs/bottleneck-types.md#重複処理) を参照。
 
-TanStack Query / SWR / RTK Query / Apollo / urql など主要なクライアントキャッシュは、`queryKey` (cache key) を **`JSON.stringify` ベースの deterministic hash** で同一性判定する。TanStack Query v5 の現 `main` の hash 関数は以下のとおり ([TanStack/query query-core/src/utils.ts](https://github.com/TanStack/query/blob/main/packages/query-core/src/utils.ts) `hashKey`):
+キャッシュの同一性判定はライブラリごとに異なる。TanStack Query の既定実装では、plain object のプロパティを整列して `JSON.stringify` する。TanStack Query v5 の現 `main` の hash 関数は以下のとおり ([TanStack/query query-core/src/utils.ts](https://github.com/TanStack/query/blob/main/packages/query-core/src/utils.ts) `hashKey`):
 
 ```typescript
 JSON.stringify(queryKey, (_, val) =>
@@ -25,7 +25,7 @@ JSON.stringify(queryKey, (_, val) =>
 
 | 失敗モード | 種別 | 何が起こるか | 典型的なトリガー |
 |---|---|---|---|
-| **mode 1: cache miss 永続化** | **速度** | 毎レンダーで新しい hash → 新規 cache entry が作られる → 重複 fetch + `gcTime` 期間 cache が肥大化 | `crypto.randomUUID()` / `Date.now()` / 毎回新 object を返す factory |
+| **mode 1: cache miss 永続化** | **速度** | 毎レンダーで新しい hash → 新規 cache entry が作られる → 重複 fetch + `gcTime` 期間 cache が肥大化 | `crypto.randomUUID()` / `Date.now()` / 毎回異なる内容を返す factory |
 | **mode 2: hashKey 衝突 (false hit)** | 正しさ | 異なる instance が同一 hash に潰れて別 query の結果が return される | 識別情報を closure に閉じ込めた、own property を持たない instance |
 | **mode 3: identity loss** | 正しさ | `Map` / `Set` / 関数のみの object が `{}` に潰れる、または `Date` が ISO 化されて意図と乖離 | `new Map()` / `new Set()` / `new Date()` |
 
@@ -46,7 +46,7 @@ function OrderList({ filters }) {
   });
 }
 
-// 同じ問題: Date.now() / Math.random() / 毎レンダー新規生成される object 全般
+// 同じ問題: Date.now() / Math.random() / 毎レンダー異なる値を含む object
 const useOrdersAt = (filters) =>
   useQuery({
     queryKey: ['orders', { at: Date.now(), filters }],
@@ -84,7 +84,7 @@ maintainer (tkdodo) も「JSON.stringify できない値を渡したい場合は
 
 ### mode 3: identity loss (正しさ)
 
-`Map` / `Set` は own enumerable property を持たないため `JSON.stringify` で `'{}'` に潰れる。`Date` は ISO 文字列に展開されるので衝突は起きないが、key としての意図 (瞬間 vs 範囲 vs 日付のみ) が表現されないまま文字列化される点に注意。
+`Map` / `Set` は own enumerable property を持たないため `JSON.stringify` で `'{}'` に潰れる。`Date` は ISO 文字列に展開され、同じ ISO 文字列を直接渡した場合と区別できない。さらに、key としての意図 (瞬間 vs 範囲 vs 日付のみ) が表現されないまま文字列化される点に注意。
 
 ```typescript
 // ❌ Map: JSON.stringify(new Map([['k','v']])) === '{}' → 識別性なし
@@ -103,7 +103,7 @@ useQuery({
 ## ✅ 改善後
 
 ```typescript
-// ✅ mode 1: random / Date.now / generated UUID を queryKey から除外
+// ✅ mode 1: 結果に影響しない random / Date.now / generated UUID を除外
 const useOrders = (filters) =>
   useQuery({
     queryKey: ['orders', { filters }],  // sessionId / Date.now を含めない
@@ -231,6 +231,8 @@ mode 2/3 の hashKey collision 検証 (n=1,000):
 
 ## 注意・例外
 
+同じデータを指す fresh plain object は、TanStack Query では同じキーになる。結果を変えるテナント、ユーザー、フィルタ、時点はキーに残すか、キャッシュ自体を分離する。安定キーでも stale 判定・無効化・期限切れで再取得する。
+
 - **plain object を直接渡すのは安全**: TanStack Query の deterministic hashing は plain object の key 順序を sort で吸収する。`{a:1,b:2}` と `{b:2,a:1}` は同じ hash。filter object を直接 queryKey に入れること自体はアンチパターンではない ([公式 docs](https://tanstack.com/query/latest/docs/framework/react/guides/query-keys))
 - **Vue Query は reactive properties を自動 tracking する**: `ref` / `computed` を queryKey に含めると `toValue()` 経由で値が展開される。React 版にはこの自動安定化機構がない ([Vue Reactivity — TanStack Query](https://tanstack.com/query/latest/docs/framework/vue/reactivity))
 - **Apollo Client** は cache key を `__typename:id` で normalize する経路と、operation variables の serialization 経路が分離している。本パターンは後者にのみ該当
@@ -244,13 +246,15 @@ mode 2/3 の hashKey collision 検証 (n=1,000):
 |---|---|---|
 | **TanStack Query v5** | [`hashKey`: JSON.stringify + sort](https://github.com/TanStack/query/blob/main/packages/query-core/src/utils.ts) | 本パターンが扱う事例 |
 | **SWR ≥ 1.1.0** | [object key を auto-serialize](https://swr.vercel.app/docs/arguments) | 関数を key にすると closure 変数の変化が反映されない ([vercel/swr #611](https://github.com/vercel/swr/issues/611)) |
-| **RTK Query** | [`serializeQueryArgs`: sort + stringify + endpoint 名連結](https://redux-toolkit.js.org/rtk-query/api/createApi) | 関数 / closure-only instance を args にすると collision |
+| **RTK Query** | [`serializeQueryArgs`: sort + stringify + endpoint 名連結](https://redux.js.org/toolkit/rtk-query/api/createApi) | 関数 / closure-only instance を args にすると collision |
 | **Apollo Client** | operation variables の文字列化 (cache normalization とは別経路) | 毎回新 variables object でも値が同じなら hit、関数を含めると壊れる |
-| **urql** | [`hash(GraphQL document + variables)`](https://nearform.com/open-source/urql/docs/basics/document-caching/) | document AST が安定参照前提、variables は serialize 経路 |
+| **urql** | [`hash(GraphQL document + variables)`](https://urql.dev/docs/basics/document-caching/) | document AST が安定参照前提、variables は serialize 経路 |
 
 横断的結論: **serialize-based hash を採用するすべてのクライアントキャッシュで、不安定な値や hashKey 衝突を起こす値を key に渡すと壊れる**。アルゴリズム的問題でありフレームワークの API 設計選択ではない。
 
 ## 参考
+
+- [検索キーとキャッシュ適用範囲の資料](../../docs/primary-sources.md#データアクセスとキャッシュ)
 
 引用 Tier は [docs/primary-sources.md](../../docs/primary-sources.md) 体系に従う (Tier 1: 公式 / spec、Tier 2: engine team、Tier 3: 信頼性ある二次、Tier 4: 理論)。本パターンは library 公式 docs / source / maintainer 解説が主要根拠で、V8 / ECMA-262 直結ではないため Tier 3 が中心。
 
@@ -260,9 +264,9 @@ mode 2/3 の hashKey collision 検証 (n=1,000):
 - **Tier 3**: [TanStack/query Discussion #5098 — How to set correct queryKey for pre-memoized queryFn](https://github.com/TanStack/query/discussions/5098) — maintainer による `queryKeyHashFn` 推奨
 - **Tier 3**: [Effective React Query Keys — tkdodo.eu](https://tkdodo.eu/blog/effective-react-query-keys) — Query Key Factory パターン
 - **Tier 3**: [SWR — Arguments](https://swr.vercel.app/docs/arguments) — SWR 1.1.0 以降の auto-serialize 仕様
-- **Tier 3**: [RTK Query — createApi (serializeQueryArgs)](https://redux-toolkit.js.org/rtk-query/api/createApi) — RTK Query の serialize 仕様
+- **Tier 3**: [RTK Query — createApi (serializeQueryArgs)](https://redux.js.org/toolkit/rtk-query/api/createApi) — RTK Query の serialize 仕様
 - **Tier 3**: [Apollo Client — Cache Configuration](https://www.apollographql.com/docs/react/caching/cache-configuration) — Apollo の cache normalization 経路
-- **Tier 3**: [urql — Document Caching](https://nearform.com/open-source/urql/docs/basics/document-caching/) — urql の hash 仕様
+- **Tier 3**: [urql — Document Caching](https://urql.dev/docs/basics/document-caching/) — urql の hash 仕様
 - **Tier 3**: [Vue Reactivity — TanStack Query Documentation](https://tanstack.com/query/latest/docs/framework/vue/reactivity) — Vue Query の auto-tracking 仕様
 - [カテゴリ解説: 重複処理 — docs/bottleneck-types.md](../../docs/bottleneck-types.md#重複処理)
 - [Issue #13](https://github.com/824ysuk/benchmark-antipatterns/issues/13) — 本パターンの元提案 (3 失敗モードの詳細・他ライブラリ比較表・実害事例)
