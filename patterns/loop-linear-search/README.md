@@ -1,22 +1,22 @@
 # ループ内 線形探索
 
-**カテゴリ**: [計算量の無駄](../../docs/bottleneck-types.md#計算量の無駄)  
-**計算量の変化**: O(n²) → O(n)  
-**実測改善比**: 64×（n=10,000、参考値）
+**カテゴリ**: [計算量の無駄](../../docs/bottleneck-types.md#計算量の無駄)\
+**計算量の変化**: 最悪 O(nm) → 平均 O(n+m)（ハッシュ実装、入力が n 件と m 件）\
+**実測改善比**: 64.8×（n=10,000、下記の計測環境）
 
 ## 問題
 
 > Big-O 記法の前提は [docs/performance-basics.md](../../docs/performance-basics.md) を参照。
 
-配列の `find` / `filter` / `some` / `includes` は先頭から順に走査する O(n) 操作。これをループ内で呼ぶと、外側 n 回 × 内側 n 回の二重ループになり O(n²) になる。n=10,000 なら最大 **1 億回**の比較が走る。
+ユーザー n 件ごとに注文 m 件を先頭から検索すると、該当なしや末尾でのヒットでは最悪 O(nm) になる。
 
-Map はキーから値を O(1) で引けるハッシュ構造。事前に 1 回 Map を構築すれば、全体の計算量を O(n) に抑えられる。
+ハッシュベースの Map を一度構築すれば、平均 O(n+m) 時間と追加 O(m) 空間で処理できる。ECMAScript の要件は平均で要素数に対して劣線形のアクセス時間。
 
 ## ❌ アンチパターン
 
 ```typescript
 for (const user of users) {
-  const order = orders.find(o => o.userId === user.id); // 毎回全走査 O(n)
+  const order = orders.find(o => o.userId === user.id); // 最悪 O(m)
   results.push(order ?? null);
 }
 ```
@@ -26,7 +26,10 @@ for (const user of users) {
 Map を 1 回だけ構築し、ループ内は O(1) ルックアップに置き換える。
 
 ```typescript
-const orderMap = new Map(orders.map(o => [o.userId, o])); // O(m) — 1 回だけ
+const orderMap = new Map();
+for (const order of orders) {
+  if (!orderMap.has(order.userId)) orderMap.set(order.userId, order);
+}
 for (const user of users) {
   results.push(orderMap.get(user.id) ?? null);            // O(1) × n
 }
@@ -34,40 +37,30 @@ for (const user of users) {
 
 ## ベンチマーク
 
-[計測ヘルパー](../../CONTRIBUTING.md#計測ヘルパー)を先に実行してから以下を実行してください。
+Node.js 22.18 以降で、リポジトリ直下から実行します。改善前後の結果が一致することを確認してから計測します。
 
-```javascript
-const N = 10_000;
-const orders = Array.from({ length: N }, (_, i) => ({ userId: i, data: 'x' }));
-const users  = Array.from({ length: N }, (_, i) => ({ id: i }));
-
-benchmark('❌ 線形探索', () => {
-  const r = [];
-  for (const u of users) r.push(orders.find(o => o.userId === u.id) ?? null);
-});
-benchmark('✅ Map 索引化', () => {
-  const m = new Map(orders.map(o => [o.userId, o]));
-  const r = [];
-  for (const u of users) r.push(m.get(u.id) ?? null);
-});
+```sh
+node patterns/loop-linear-search/bench.ts
 ```
 
 ## 実測値（参考）
 
-| 条件 | 改善前 | 改善後 | 倍率 |
-|---|---|---|---|
-| n = 10,000 | 61.9 ms | 0.95 ms | **64×** |
+Apple M5 Pro、Docker の Linux arm64。Node.js 24.22.2（V8 13.6.233.17-node.63）と Node.js 22.23.4（V8 12.4.254.21-node.57）で各 2 回ウォームアップ + 10 回計測。
 
-> 結果は実行環境・ハードウェアによって変わります。同じ環境で改善前後を比較することが重要です。
+| Node.js・入力 | 改善前の中央値 ± 標準偏差 (ms) | 改善後の中央値 ± 標準偏差 (ms) | 中央値の比 |
+|---|---:|---:|---:|
+| 24.22.2、n=10,000 | 46.854 ± 2.854 | 0.723 ± 0.122 | 64.8× |
+| 22.23.4、n=10,000 | 39.859 ± 1.907 | 0.608 ± 0.120 | 65.5× |
 
 ## 注意・例外
 
-- 配列が小さい（n < 数百）場合は Map 構築コストが上回ることがある。プロファイルで確認してから適用する
+- 同一キーの最初の注文を保持すると `find` と同じ結果になる。複数件を返す `filter` の置き換えでは、キーごとに該当する全要素を保持する。例では整数または文字列の ID を想定する。
+- 配列が小さい場合や先頭付近で常にヒットする場合は、索引構築コストが上回ることがある。
 - `find` を 1 回だけ呼ぶ場合（ループ外）はアンチパターンではない
 
 ## 他言語での同等パターン
 
-| 言語 | O(n) 構造 | 備考 |
+| 言語 | 索引に使う構造 | 備考 |
 |---|---|---|
 | Python | `dict` / `{k: v for ...}` | `list.index()` のループ内呼び出しが同じ問題 |
 | Java | `HashMap` | `List.contains()` のループ内呼び出しが同じ問題 |
@@ -78,7 +71,7 @@ benchmark('✅ Map 索引化', () => {
 
 引用 Tier は [docs/primary-sources.md](../../docs/primary-sources.md) 体系に従う（Tier 1: 公式 / spec、Tier 2: engine team、Tier 3: 信頼性ある二次、Tier 4: 理論）。
 
+- [ECMA-262 の配列探索と Map / Set](../../docs/primary-sources.md#javascript-の仕様と計測) — 比較規則と平均アクセス時間の仕様要件
 - **Tier 4**: [Big-O Cheat Sheet](https://www.bigocheatsheet.com/) — Map / Set の O(1) ルックアップ理論
 - **Tier 3**: [Loop Performance Anti-Patterns: 40-Repository Scan — stackinsight.dev](https://stackinsight.dev/blog/loop-performance-empirical-study) — 実コードベース 40 リポジトリでの出現頻度調査
-- **Tier 3**: [How to Avoid O(N²) — Tomoharu Tsutsumi (Medium)](https://tomoharutsutsumi.medium.com/how-to-avoid-o-n%C2%B2-60eaa61f523a) — 日本語コミュニティでのループ内線形探索解説
 - [カテゴリ解説: 計算量の無駄 — docs/bottleneck-types.md](../../docs/bottleneck-types.md#計算量の無駄)
