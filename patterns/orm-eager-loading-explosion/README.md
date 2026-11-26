@@ -1,16 +1,16 @@
 # ORM ネスト include のカルテシアン爆発
 
 **カテゴリ**: [計算量の無駄](../../docs/bottleneck-types.md#計算量の無駄)
-**計算量の変化**: O(n × m × l) → O(n + m + l)
-**実測改善比**: 41×（Prisma 6.19 + PostgreSQL 16、参考値）
+**比較対象**: PostgreSQL 側での関連集約と、テーブル別取得後のアプリ側組み立て
+**実測改善比**: 35.5×（外部キー列に索引なし）、1.9×（索引あり）
 
 ## 問題
 
 > Big-O 記法の前提は [docs/performance-basics.md](../../docs/performance-basics.md) を参照。
 
-ORM の `include` / `eager_load` を to-many リレーション 2 段以上にネストすると、内部 SQL の JOIN 結果が「親 × 子 × 孫 …」の **掛け算**で爆発する。これを **Cartesian explosion**（カルテシアン爆発）と呼ぶ。User=100, Order=10/user, Item=5/order, Review=3/item で `100 × 10 × 5 × 3 = 15,000` 行が中間結果として生成され、アプリ側で deduplicate して 100 User オブジェクトに hydrate する。User カラムは本来 100 件で済むが、JOIN 経由では中間で 150 倍に膨らむ。
+複数の to-many を平坦な JOIN で読み込むと、親の列が子の組み合わせごとに複製される。たとえば 1 親に子 A が 20 件、子 B が 10 件あれば、両方を結合した平坦な結果は 200 行になる。
 
-各テーブルに独立 SELECT を発行して in-memory で join し直せば、行数は `n + m + l` に抑えられる。これは ORM 横断のアルゴリズム的問題で、Prisma 固有 API はトリガーに過ぎない。
+Prisma の PostgreSQL 向け `join` は `LATERAL` と JSON 集約を使う。この例では親の行が 15,000 行返るというモデルは当てはまらない。比較対象は DB での相関サブクエリと集約の負荷、および `query` が行うテーブル別取得とアプリ側での組み立ての負荷。
 
 ## ❌ アンチパターン
 
@@ -27,18 +27,17 @@ const users = await prisma.user.findMany({
     },
   },
 });
-// Prisma 6.x + PostgreSQL では LATERAL JOIN が発行され、
-// 行数 = User × Order × Item × Review の掛け算で膨張する。
+// relationJoins を有効にした Prisma 6.19.3 では既定が join。
 ```
 
 ## ✅ 改善後
 
 各テーブルへ独立 SELECT を発行し、Map で in-memory に join する。
 
-**第一推奨**: `relationLoadStrategy: "query"` の 1 行追加。
+まず `relationLoadStrategy: "query"` で同じ結果を返すクエリを比較する。
 
 ```typescript
-// `previewFeatures = ["relationJoins"]` を schema.prisma に追記が必要（2026-06 時点で preview）
+// `previewFeatures = ["relationJoins"]` を schema.prisma に追記が必要（このベンチの Prisma 6.19.3）
 const users = await prisma.user.findMany({
   relationLoadStrategy: "query",
   include: { orders: { include: { items: { include: { reviews: true } } } } },
@@ -63,125 +62,45 @@ for (const r of reviews) {
 
 ## ベンチマーク
 
-既存パターンの `benchmark()` ヘルパー（[CONTRIBUTING.md](../../CONTRIBUTING.md#計測ヘルパー)）は sync 関数を想定するため、async な Prisma client では使えない。代わりに `process.hrtime.bigint()` ベースの async 対応 helper を bench.js 内に inline 定義する。本パターンは Docker + Prisma + PostgreSQL が必要で、1 コマンドで再現できる手順を以下に示す。
+Prisma 6.19.3 と PostgreSQL 16 を使います。空の検証専用 DB を用意し、`DATABASE_URL` に接続文字列を設定してください。Node.js 22.18 以降を使い、このパターンのディレクトリから実行します。
 
-### 環境セットアップ
-
-```bash
-# 1. PostgreSQL を起動
-docker run -d --name bap-pg-bench -e POSTGRES_PASSWORD=bench \
-  -e POSTGRES_DB=bench -p 55432:5432 postgres:16-alpine
-
-# 2. プロジェクト準備
-mkdir bench && cd bench
-npm init -y && npm i @prisma/client && npm i -D prisma
-export DATABASE_URL_PG="postgresql://postgres:bench@localhost:55432/bench"
-
-# 3. schema.prisma を配置（下記）してマイグレーション
-npx prisma migrate dev --name init
+```sh
+bench_dir=$(mktemp -d)
+cp schema.prisma seed.cjs bench.cjs "$bench_dir"
+cd "$bench_dir"
+npm install --save-exact prisma@6.19.3 @prisma/client@6.19.3
+npx prisma db push --schema schema.prisma
+node seed.cjs
+node bench.cjs
 ```
 
-### `schema.prisma`
+同じ並び順を指定し、各反復で両戦略のネストした結果が一致することを確認します。2 回ウォームアップした後、実行順を交互にして各 10 回計測します。外部キー列のインデックスが性能差に与える影響を見るには、同じ DB で次を適用して再計測します。
 
-```prisma
-generator client {
-  provider        = "prisma-client-js"
-  previewFeatures = ["relationJoins"]
-}
-datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL_PG")
-}
-model User       { id Int @id @default(autoincrement()) name String orders Order[] }
-model Order      { id Int @id @default(autoincrement()) userId Int user User @relation(fields: [userId], references: [id]) items OrderItem[] }
-model OrderItem  { id Int @id @default(autoincrement()) orderId Int order Order @relation(fields: [orderId], references: [id]) reviews ItemReview[] }
-model ItemReview { id Int @id @default(autoincrement()) itemId Int item OrderItem @relation(fields: [itemId], references: [id]) score Int }
+```sql
+CREATE INDEX ON "Order" ("userId");
+CREATE INDEX ON "OrderItem" ("orderId");
+CREATE INDEX ON "ItemReview" ("itemId");
+ANALYZE;
 ```
-
-### `seed.js`
-
-```javascript
-const { PrismaClient } = require('@prisma/client');
-const p = new PrismaClient();
-const [U, O, I, R] = [100, 10, 5, 3];
-
-(async () => {
-  await p.itemReview.deleteMany(); await p.orderItem.deleteMany();
-  await p.order.deleteMany();      await p.user.deleteMany();
-
-  await p.user.createMany({ data: Array.from({ length: U }, (_, i) => ({ name: `u${i}` })) });
-  const users = await p.user.findMany();
-  await p.order.createMany({ data: users.flatMap(u => Array.from({ length: O }, () => ({ userId: u.id }))) });
-  const orders = await p.order.findMany();
-  await p.orderItem.createMany({ data: orders.flatMap(o => Array.from({ length: I }, () => ({ orderId: o.id }))) });
-  const items = await p.orderItem.findMany();
-  await p.itemReview.createMany({ data: items.flatMap(i => Array.from({ length: R }, () => ({ itemId: i.id, score: 5 }))) });
-  await p.$disconnect();
-})();
-```
-
-### `bench.js`
-
-```javascript
-const { PrismaClient } = require('@prisma/client');
-const p = new PrismaClient();
-const include = { orders: { include: { items: { include: { reviews: true } } } } };
-
-async function measure(label, fn) {
-  for (let i = 0; i < 2; i++) await fn();                       // warmup
-  const t = [];
-  for (let i = 0; i < 10; i++) {
-    const s = process.hrtime.bigint(); await fn();
-    t.push(Number(process.hrtime.bigint() - s) / 1e6);
-  }
-  t.sort((a, b) => a - b);
-  console.log(`[${label}] median=${t[5].toFixed(2)}ms`);
-}
-
-(async () => {
-  await measure('❌ default (join)',  () => p.user.findMany({ include }));
-  await measure('❌ explicit "join"', () => p.user.findMany({ relationLoadStrategy: 'join',  include }));
-  await measure('✅ "query"',         () => p.user.findMany({ relationLoadStrategy: 'query', include }));
-  await measure('✅ manual preload',  async () => {
-    const users   = await p.user.findMany();
-    const orders  = await p.order.findMany({ where: { userId:  { in: users.map(u => u.id) } } });
-    const items   = await p.orderItem.findMany({ where: { orderId: { in: orders.map(o => o.id) } } });
-    await p.itemReview.findMany({ where: { itemId:  { in: items.map(i => i.id) } } });
-  });
-  await p.$disconnect();
-})();
-```
-
-実行: `node seed.js && node bench.js`
 
 ## 実測値（参考）
 
-データ規模: 100 User / 1,000 Order / 5,000 Item / 15,000 Review。median (10 反復 + 2 warmup)。
-環境: macOS 26.5.1 / arm64 / Node 20.19.6 / Prisma 6.19.3 / PostgreSQL 16 (alpine, Docker)。
+データ規模は 100 User / 1,000 Order / 5,000 Item / 15,000 Review です。
 
-| 戦略 | 中央値 | 主な比較 |
-|---|---|---|
-| ❌ default | 2,378.23 ms | (a) |
-| ❌ `relationLoadStrategy: "join"` | 1,243.30 ms | (b) — antipattern 本質倍率の起点 |
-| ✅ `relationLoadStrategy: "query"` | 39.72 ms | (c) — 1 行解 |
-| ✅ 手動 preload | 30.03 ms | (d) |
+Node.js 24.22.2 / Prisma 6.19.3 / PostgreSQL 16.14、Linux arm64（Docker on Apple M5 Pro）。各戦略につきウォームアップ 2 回、計測 10 回。
 
-| 比較 | 倍率 |
-|---|---|
-| **(b) vs (d)**（同 Prisma client 内、戦略の差） | **41×**（主指標） |
-| (b) vs (c)（同 1 行修正の効果） | 31× |
-| (a) vs (d)（最大差、警鐘用） | 79× |
+| 外部キー列の索引 | join 中央値 | query 中央値 | 中央値の比 |
+|---|---:|---:|---:|
+| なし | 1,512.60 ms | 42.55 ms | 35.5× |
+| 3 列に追加 | 90.79 ms | 48.07 ms | 1.9× |
 
-> 結果は実行環境・ハードウェアによって変わります。同じ環境で改善前後を比較することが重要です。本検証では別環境 (Node 24.14.1) でも (b)/(d) = 56× で再現を確認しています（環境差で 35-60× の幅）。
+過去に掲載していた手動 preload の 41× は組み立て前の取得時間との比較でした。上の表では同じネスト結果を組み立てる戦略同士を比較しています。
 
 ## 注意・例外
 
-- **`relationLoadStrategy` は 2026-06 時点で依然 preview**（`previewFeatures = ["relationJoins"]` 必須）。GA 当初予定 2025-03〜08 が未達（[prisma/prisma#26136](https://github.com/prisma/prisma/discussions/26136)）。GA 前に default が `query` 側へ反転する可能性があり、その場合は本パターン自体が発火しなくなる
-- **多くのケースは `relationLoadStrategy: "query"` の 1 行追加で解決**する。手動 preload は preview を使えない / 使いたくない場合の fallback
-- **to-one を 1 段だけ include** する場合は JOIN の方が速いことが多い。本パターンは **to-many を 2 段以上ネスト**するときに限り適用する
-- **SQLite では再現不能**: Prisma が `relationLoadStrategy` 引数自体を validation error で拒否する。本パターンは PostgreSQL / MySQL の Prisma 利用環境固有
-- **(a) default と (b) `relationLoadStrategy: "join"` は本来同じ戦略**（Prisma 6.x + PostgreSQL の default は `join`）。schema 反映直後や接続プール warmup 不足時には乖離して測定されることがあるが、十分な warmup (2-3 回以上) を確保すれば両者はほぼ同等になる。表の (a)/(b) ≈ 1.9× は環境固有の noise を含む値で、antipattern の本質倍率としては (b)/(d) を採用する
-- ページング条件によっては raw SQL の方が速いケースもある（offset の負荷など）
+- `relationJoins` を有効にした Prisma 6.19.3 では `join` が既定です。比較は両戦略を明示して行います。
+- `query` はテーブルごとに取得してクライアントで組み立てます。関連キーの索引、データの偏り、DB との往復コストによって優劣が変わります。
+- 平坦な JOIN では兄弟の to-many 同士でも行が掛け合わされます。Prisma の `LATERAL` と JSON 集約では、生成 SQL と実行計画で膨張した行や反復走査を特定します。
 
 ## 他言語での同等パターン
 
@@ -196,11 +115,13 @@ Rails の語彙が最も明確で、Prisma `include`（default）は Rails の `
 
 ## 参考
 
+- [Prisma と SQLAlchemy の公式資料](../../docs/primary-sources.md#データアクセスとキャッシュ)
+
 引用 Tier は [docs/primary-sources.md](../../docs/primary-sources.md) 体系に従う（Tier 1: 公式 / spec、Tier 2: engine team、Tier 3: 信頼性ある二次、Tier 4: 理論）。
 
 - **Tier 3**: [The best way to fix the Hibernate MultipleBagFetchException — Vlad Mihalcea](https://vladmihalcea.com/hibernate-multiplebagfetchexception/) — Hibernate での同型問題と解決策の解説（Java/Hibernate コミュニティの定番参照）
-- **Tier 3**: [Database vs Application: Demystifying JOIN Strategies — Prisma Blog](https://www.prisma.io/blog/database-vs-application-demystifying-join-strategies) — Prisma 公式 blog (relationJoins と application-level join の比較)
-- **Tier 3**: [prisma/prisma#23139 — Postgres Query Performance Suffering with relationJoins toggled on](https://github.com/prisma/prisma/issues/23139) — relationJoins の性能問題のコミュニティ報告
-- **Tier 3**: [prisma/prisma#22596 — High Performance Overhead with relationJoins preview feature in Nested Joins](https://github.com/prisma/prisma/issues/22596) — Nested Joins での性能オーバーヘッド報告
+- **Tier 1**: [Choosing the Best Join Strategy in Prisma ORM — Prisma Blog](https://www.prisma.io/blog/prisma-orm-now-lets-you-choose-the-best-join-strategy-preview) — Prisma 公式 blog (relationJoins と application-level join の比較)
+- **Tier 3**: [prisma/prisma#23139 — Postgres Query Performance Suffering with relationJoins toggled on](https://github.com/prisma/orm/issues/23139) — relationJoins の性能問題のコミュニティ報告
+- **Tier 3**: [prisma/prisma#22596 — High Performance Overhead with relationJoins preview feature in Nested Joins](https://github.com/prisma/orm/issues/22596) — Nested Joins での性能オーバーヘッド報告
 - **Tier 4**: [Cartesian explosion — Wikipedia](https://en.wikipedia.org/wiki/Cartesian_explosion) — カルテシアン爆発概念の理論的背景
 - [カテゴリ解説: 計算量の無駄 — docs/bottleneck-types.md](../../docs/bottleneck-types.md#計算量の無駄)
