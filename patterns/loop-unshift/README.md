@@ -86,6 +86,33 @@ V8 の階層実行（Ignition インタプリタ → Sparkplug / Maglev / TurboF
 - 理論比は `O(N²)/O(N) ≈ N/2` (例: n=10,000 で 5,000×)。実測は warmup 後の `push + reverse` 側の reverse パスや SIMD memmove の定数倍で下振れするが、n を 1 桁増やすと倍率も 1 桁スケールしており Big-O オーダーが N の関数として開いていく挙動と整合する。
 - 数値は実行環境・ハードウェアで変わる。「Node v24 / V8 13.6 / n=10,000 で約 200× の median speedup を観測 (PACKED_SMI_ELEMENTS 維持)」のように engine・version・n・elements kind を必ず併記し、単一値の断言（「9× である」等）はしない。
 
+### Linux x64 の参考計測（ARM ホスト上のエミュレーション）
+
+Apple M5 Pro（macOS arm64）上の OrbStack で `linux/amd64` イメージを実行した。Node の報告は `linux/x64`、Node v24.22.3、V8 13.6.233.17-node.63。リポジトリのルートから同じコマンドを 3 回、別コンテナで順に実行した。
+
+```bash
+docker run --rm --platform linux/amd64 \
+  --mount "type=bind,src=$PWD,dst=/repo,readonly" --workdir /repo \
+  node:24-bookworm-slim@sha256:873f586f3794f52281bd039bf02c048a0be08fde619338f9941bad1eb6b34530 \
+  node --allow-natives-syntax --experimental-strip-types --no-warnings patterns/loop-unshift/bench.ts
+```
+
+各方式・各 n の warmup は n=256 で 20,000 回。表の倍率は丸め前の中央値から計算したベンチ出力を転記した。
+
+| 実行 | n | iterations | unshift median ± std (ms) | push+reverse median ± std (ms) | median 倍率 |
+|---:|---:|---:|---:|---:|---:|
+| 1 | 1,000 | 100 | 0.061 ± 0.044 | 0.006 ± 0.021 | 11.0× |
+| 1 | 10,000 | 30 | 6.39 ± 0.634 | 0.051 ± 0.092 | 124.4× |
+| 1 | 100,000 | 10 | 715.4 ± 59.75 | 0.938 ± 0.223 | 762.5× |
+| 2 | 1,000 | 100 | 0.055 ± 0.021 | 0.004 ± 0.010 | 13.3× |
+| 2 | 10,000 | 30 | 4.59 ± 0.092 | 0.047 ± 0.062 | 96.9× |
+| 2 | 100,000 | 10 | 700.1 ± 75.54 | 0.941 ± 0.182 | 743.9× |
+| 3 | 1,000 | 100 | 0.073 ± 0.041 | 0.003 ± 0.016 | 22.4× |
+| 3 | 10,000 | 30 | 6.83 ± 0.617 | 0.029 ± 0.072 | 237.5× |
+| 3 | 100,000 | 10 | 671.2 ± 69.75 | 0.874 ± 0.350 | 767.6× |
+
+n=1,024 の elements kind プローブでは、3 回とも両方式で `PACKED_SMI_ELEMENTS` を確認した。n=10,000 の `push + reverse` は 3 回とも p95/median が 2 を超え、倍率は 96.9〜237.5× にばらついた。n=100,000 では 743.9〜767.6× だった。これらの値はエミュレーション環境での観測値で、別マシンでのネイティブ実行による再現性や CPU・OS・Node の個別の寄与は未検証。
+
 ## 注意・例外
 
 - **N が小さいときの差は実測で消える**: N < 100 程度では memmove のスループット・分岐予測・命令キャッシュが支配的で、両者の差は埋もれる。書き換えるかどうかは N の上限と実測の両方で判断する。
