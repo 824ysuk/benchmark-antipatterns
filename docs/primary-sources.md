@@ -107,8 +107,6 @@ V8 team の現職・元職メンバーが個人 blog で発表した記事。Tie
 | [romgrk.com — optimizing-javascript](https://romgrk.com/posts/optimizing-javascript) | V8 内部最適化の俯瞰（補助参照。一次断定には使わない） |
 | [github.com/davidmarkclements/v8-perf](https://github.com/davidmarkclements/v8-perf) | V8 6.0 / 6.1 fast path、Node コミュニティ参照（旧バージョン情報。current V8 と差異あり） |
 | [use-the-index-luke.com](https://use-the-index-luke.com/) | SQL indexing と performance の体系的解説（DB 横断: PostgreSQL / MySQL / Oracle / SQL Server。著者 Markus Winand。引用時は対象 DB を併記） |
-| [tanstack.com/query — Query Keys](https://tanstack.com/query/latest/docs/framework/react/guides/query-keys) | TanStack Query v5 の queryKey deterministic hashing 仕様（plain object key 順序吸収・JSON.stringify 前提） |
-| [github.com/TanStack/query — query-core/src/utils.ts](https://github.com/TanStack/query/blob/main/packages/query-core/src/utils.ts) | `hashKey`: JSON.stringify + plain object key sort の実装 source（v5 main） |
 | [tkdodo.eu — Effective React Query Keys](https://tkdodo.eu/blog/effective-react-query-keys) | TanStack Query maintainer (tkdodo) の Query Key Factory パターン解説 |
 | [swr.vercel.app — Arguments](https://swr.vercel.app/docs/arguments) | SWR 1.1.0 以降の object key auto-serialize 仕様 |
 | [redux-toolkit.js.org — createApi (serializeQueryArgs)](https://redux.js.org/toolkit/rtk-query/api/createApi) | RTK Query の serializeQueryArgs 仕様（sort + stringify + endpoint 名連結） |
