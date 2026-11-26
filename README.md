@@ -44,6 +44,7 @@ Big-O 記法と「なぜループが遅いか」を知らない方は、まず�
 | 7 | [計算量の無駄](docs/bottleneck-types.md#計算量の無駄) | [ORM ネスト include のカルテシアン爆発](patterns/orm-eager-loading-explosion/) | 関連読み込みの SQL で行の増幅や反復走査が多い | DB 側の関連集約とテーブル別取得を比較する | [実測値](patterns/orm-eager-loading-explosion/#実測値参考) |
 | 8 | [計算量の無駄](docs/bottleneck-types.md#計算量の無駄) | [PostgreSQL seq scan](patterns/postgres-seq-scan/) | `EXPLAIN` で `Seq Scan`、返す行はごく少数 | 少数件の検索を B-tree で絞る | [実測値](patterns/postgres-seq-scan/#実測値参考) |
 | 9 | [重複処理](docs/bottleneck-types.md#重複処理) | [不安定な cache key による cache miss 永続化](patterns/unstable-cache-key/) | 同じデータに毎回異なるキーが付く | 同じデータに同じキーを使う | [実測値](patterns/unstable-cache-key/#実測値参考) |
+| 10 | [計算量の無駄](docs/bottleneck-types.md#計算量の無駄) | [深い OFFSET ページング](patterns/postgres-offset-pagination/) | 大きな `OFFSET` と小さな `LIMIT` | 前ページ末尾から索引で読む | [実測値](patterns/postgres-offset-pagination/#実測値参考) |
 
 ## 根本原因 3 カテゴリ
 
@@ -51,7 +52,7 @@ Big-O 記法と「なぜループが遅いか」を知らない方は、まず�
 
 | カテゴリ | 一言 | 該当パターン |
 |---|---|---|
-| [計算量の無駄](docs/bottleneck-types.md#計算量の無駄) | 走査、コピー、結合などで必要以上のデータを処理する | 1, 2, 3, 6, 7, 8 |
+| [計算量の無駄](docs/bottleneck-types.md#計算量の無駄) | 走査、コピー、結合などで必要以上のデータを処理する | 1, 2, 3, 6, 7, 8, 10 |
 | [非同期の直列化](docs/bottleneck-types.md#非同期の直列化) | 独立した非同期処理を 1 件ずつ待って合計待ち時間が n 倍になる | 4 |
 | [重複処理](docs/bottleneck-types.md#重複処理) | 同じ入力やデータに対する処理を繰り返す | 5, 9 |
 

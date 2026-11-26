@@ -32,6 +32,7 @@
 | 関連データの取得で大量の重複行や反復走査 | 実行計画を確認し、関連キーの索引とテーブル別取得を比較する |
 | 配列先頭への `.unshift()` の繰り返し | `push` + 最後に `reverse`、または逆順構築 |
 | `EXPLAIN ANALYZE` で少数件を返すクエリが大量の行を走査 | 検索条件に合う索引を検討し、推定行数、実測行数、バッファを確認する |
+| 深い `OFFSET` で必要なページより多くの行を走査 | 順送りの API なら前ページ末尾のキーから読み始める |
 
 ### 該当パターン
 
@@ -41,6 +42,7 @@
 - [ORM ネスト include のカルテシアン爆発](../patterns/orm-eager-loading-explosion/) — 平坦な JOIN の行増幅と、Prisma の関連集約における反復走査を区別する。
 - [ループ内 unshift](../patterns/loop-unshift/) — 先頭挿入が要素全シフトで O(n²)、push + reverse で O(n) に改善。
 - [PostgreSQL seq scan](../patterns/postgres-seq-scan/) — index 不在 column への point lookup が O(n) seq scan、B-tree index 追加で O(log n) に。
+- [深い OFFSET ページング](../patterns/postgres-offset-pagination/) — 順送りで読み捨てる行をカーソルで減らす。
 
 ### 一次情報
 

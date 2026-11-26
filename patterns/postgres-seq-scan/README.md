@@ -149,6 +149,7 @@ RUNS=10 bash bench.sh
 
 ## 参考
 
+- [深い OFFSET ページング](../postgres-offset-pagination/) — 索引があっても多数の行を読み捨てる例。
 
 - [PostgreSQL 16 の実行計画・統計・索引](../../docs/primary-sources.md#データアクセスとキャッシュ)
 
