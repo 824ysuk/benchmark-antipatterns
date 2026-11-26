@@ -117,13 +117,15 @@ const useOrdersByRepo = (repo, tenantId) =>
     queryFn: () => repo.fetch(),
   });
 
-// ✅ mode 3: Date は ISO 文字列、Map は plain object に変換してから key に
+// ✅ mode 3: このレポートでは同じ瞬間を表す Date を同じ ISO 文字列に正規化
 const useReport = (from, to) =>
   useQuery({
     queryKey: ['report', { from: from.toISOString(), to: to.toISOString() }],
     queryFn: fetchReport,
   });
 ```
+
+Date と文字列を業務上区別する場合は、値を入れる前に種類をキーに含めます。Map をキーに含める場合も、意味のある内容を安定した表現に変換します。
 
 **Query Key Factory パターン** ([Effective React Query Keys — tkdodo.eu](https://tkdodo.eu/blog/effective-react-query-keys)) を使うと primitive のみが key に乗りやすい構造に強制される。
 
@@ -231,7 +233,7 @@ mode 2/3 の hashKey collision 検証 (n=1,000):
 
 ## 注意・例外
 
-同じデータを指す fresh plain object は、TanStack Query では同じキーになる。結果を変えるテナント、ユーザー、フィルタ、時点はキーに残すか、キャッシュ自体を分離する。安定キーでも stale 判定・無効化・期限切れで再取得する。
+同じデータを指す fresh plain object は、TanStack Query では同じキーになる。結果を変えるテナント、ユーザー、フィルタ、時点はキーに残すか、キャッシュ自体を分離する。`staleTime` の経過はデータを stale として扱う条件です。再取得は設定に従い、stale なデータがあるときのマウント・再接続・フォーカス復帰や、アクティブなクエリの無効化などで起こります。
 
 - **plain object を直接渡すのは安全**: TanStack Query の deterministic hashing は plain object の key 順序を sort で吸収する。`{a:1,b:2}` と `{b:2,a:1}` は同じ hash。filter object を直接 queryKey に入れること自体はアンチパターンではない ([公式 docs](https://tanstack.com/query/latest/docs/framework/react/guides/query-keys))
 - **Vue Query は reactive properties を自動 tracking する**: `ref` / `computed` を queryKey に含めると `toValue()` 経由で値が展開される。React 版にはこの自動安定化機構がない ([Vue Reactivity — TanStack Query](https://tanstack.com/query/latest/docs/framework/vue/reactivity))
@@ -259,7 +261,7 @@ mode 2/3 の hashKey collision 検証 (n=1,000):
 引用 Tier は [docs/primary-sources.md](../../docs/primary-sources.md) 体系に従う (Tier 1: 公式 / spec、Tier 2: engine team、Tier 3: 信頼性ある二次、Tier 4: 理論)。本パターンは library 公式 docs / source / maintainer 解説が主要根拠で、V8 / ECMA-262 直結ではないため Tier 3 が中心。
 
 - **Tier 3**: [Query Keys — TanStack Query Documentation (React)](https://tanstack.com/query/latest/docs/framework/react/guides/query-keys) — deterministic hashing の公式仕様説明
-- **Tier 3**: [TanStack/query — query-core/src/utils.ts `hashKey`](https://github.com/TanStack/query/blob/main/packages/query-core/src/utils.ts) — JSON.stringify + plain object key sort の実装
+- **Tier 1**: [TanStack/query — query-core/src/utils.ts `hashKey`](https://github.com/TanStack/query/blob/main/packages/query-core/src/utils.ts) — JSON.stringify + plain object key sort の実装
 - **Tier 3**: [TanStack/query Discussion #4079 — Infinite loop when queryKey property changes](https://github.com/TanStack/query/discussions/4079) — mode 1 の実害報告
 - **Tier 3**: [TanStack/query Discussion #5098 — How to set correct queryKey for pre-memoized queryFn](https://github.com/TanStack/query/discussions/5098) — maintainer による `queryKeyHashFn` 推奨
 - **Tier 3**: [Effective React Query Keys — tkdodo.eu](https://tkdodo.eu/blog/effective-react-query-keys) — Query Key Factory パターン
