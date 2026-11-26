@@ -8,39 +8,39 @@
 
 コードレビュー時に「これはどのカテゴリか」を判断する 3 つの問い:
 
-1. **ループの内側に O(n) 操作（配列の全走査・オブジェクトのコピー）があるか？** → [計算量の無駄](#計算量の無駄)
+1. **繰り返し走査、増え続けるコピー、JOIN による行の増幅などで余分なデータを処理しているか？** → [計算量の無駄](#計算量の無駄)
 2. **ループの内側に `await` があり、処理が独立しているか？** → [非同期の直列化](#非同期の直列化)
-3. **ループ変数に依存しない処理を毎回実行しているか？** → [重複処理](#重複処理)
+3. **同じ入力や論理的に同じデータに対する処理を繰り返しているか？** → [重複処理](#重複処理)
 
 ---
 
 ## 計算量の無駄
 
-**定義**: ループの内側で O(n) 操作を呼び出し、全体が O(n²) になるパターン。
+**定義**: 同じ結果に対して余分な走査、コピー、結合や集約が発生するパターン。
 
 **メンタルモデル**: 「内側の走査を Map / Set / 事前計算で O(1) に潰せないか」
 
 ### 検出シグナル
 
-コードレビュー時にこれらが `for` ループの内側にあれば要注意:
+コードレビューや実行計画で確認できるシグナル:
 
 | シグナル | 代替 |
 |---|---|
-| `.find(fn)` / `.filter(fn)` / `.some(fn)` / `.includes(x)` / `.indexOf(x)` | ループ外で `Map` / `Set` を構築して O(1) ルックアップに |
-| `reduce` 内の `{...acc, [key]: val}` | `acc[key] = val` で直接変更（初期値オブジェクトへの変更は安全） |
+| `.find(fn)` / `.filter(fn)` / `.some(fn)` / `.includes(x)` / `.indexOf(x)` | 同じ比較規則を保つ `Map` / `Set` をループ外で構築する |
+| `reduce` 内の `{...acc, [key]: val}` | 処理内に閉じた accumulator に書き込む。任意キーの代入に注意する |
 | `reduce` 内の `acc.concat([item])` | `acc.push(item)` で直接変更 |
-| ORM の `include` / `eager_load` を to-many 2 段以上ネスト | `relationLoadStrategy: "query"` または手動 preload + Map 結合（行の掛け算を加算に） |
+| 関連データの取得で大量の重複行や反復走査 | 実行計画を確認し、関連キーの索引とテーブル別取得を比較する |
 | 配列先頭への `.unshift()` の繰り返し | `push` + 最後に `reverse`、または逆順構築 |
-| `EXPLAIN` で `Seq Scan` + 高 selectivity の `WHERE col = '...'`（B-tree index 不在） | `CREATE INDEX ON table (col)` で B-tree O(log n) lookup に。selectivity < 1% の point lookup で効果大 |
+| `EXPLAIN ANALYZE` で少数件を返すクエリが大量の行を走査 | 検索条件に合う索引を検討し、推定行数、実測行数、バッファを確認する |
 
 ### 該当パターン
 
-- [ループ内 線形探索](../patterns/loop-linear-search/) — `find` をループ内で呼び O(n²)、Map 構築で O(n) に改善。改善比 **64×**（n=10,000）
-- [ループ内 includes → Set](../patterns/loop-includes-to-set/) — `includes` をループ内で呼び O(n²)、Set 構築で O(n) に改善。改善比 **42.6×**（n=10,000）
-- [reduce + スプレッド](../patterns/reduce-spread/) — `reduce` 内スプレッドが O(n²)、直接変更で O(n) に。改善比 **1,044×**（n=1,000）
-- [ORM ネスト include のカルテシアン爆発](../patterns/orm-eager-loading-explosion/) — to-many 2 段以上ネストで行が掛け算に膨張、独立 SELECT + Map 結合で加算に。改善比 **41×**（Prisma 6 + PG）
-- [ループ内 unshift](../patterns/loop-unshift/) — 先頭挿入が要素全シフトで O(n²)、push + reverse で O(n) に改善。改善比 **207.8×**（n=10,000）
-- [PostgreSQL seq scan](../patterns/postgres-seq-scan/) — index 不在 column への point lookup が O(n) seq scan、B-tree index 追加で O(log n) に。改善比 **433.7×**（PG 16 / 1M rows、point lookup 限定。low selectivity 2% は 1.9× にとどまる）
+- [ループ内 線形探索](../patterns/loop-linear-search/) — n 件から m 件を繰り返し探す最悪 O(nm) の処理を、ハッシュ索引で平均 O(n+m) に改善。
+- [ループ内 includes → Set](../patterns/loop-includes-to-set/) — n 件を m 件の許可リストで照合する最悪 O(nm) の処理を、ハッシュ索引で平均 O(n+m) に改善。
+- [reduce + スプレッド](../patterns/reduce-spread/) — `reduce` 内スプレッドが O(n²)、直接変更で O(n) に。
+- [ORM ネスト include のカルテシアン爆発](../patterns/orm-eager-loading-explosion/) — 平坦な JOIN の行増幅と、Prisma の関連集約における反復走査を区別する。
+- [ループ内 unshift](../patterns/loop-unshift/) — 先頭挿入が要素全シフトで O(n²)、push + reverse で O(n) に改善。
+- [PostgreSQL seq scan](../patterns/postgres-seq-scan/) — index 不在 column への point lookup が O(n) seq scan、B-tree index 追加で O(log n) に。
 
 ### 一次情報
 
@@ -56,9 +56,9 @@
 
 ## 非同期の直列化
 
-**定義**: 独立した非同期処理を 1 件ずつ `await` し、合計待ち時間が n × latency になるパターン。
+**定義**: 独立した非同期処理を 1 件ずつ `await` し、待ち時間が各処理の待ち時間の合計になるパターン。
 
-**メンタルモデル**: 「処理間の依存関係がないなら同時に開始できる。最も遅い 1 件分の時間だけかければよい」
+**メンタルモデル**: 「処理間に依存がなく、同時に処理できる余力があれば、待ち時間を重ねられる」
 
 ### 検出シグナル
 
@@ -71,7 +71,7 @@
 
 ### 該当パターン
 
-- [sequential await](../patterns/sequential-await/) — O(n × latency) → O(max latency)。改善比 **75×**（n=100、latency=2ms）
+- [sequential await](../patterns/sequential-await/) — 十分な同時実行枠がある場合に、独立した I/O の待ち時間を重ねる。
 
 ### 一次情報
 
@@ -86,7 +86,7 @@
 
 ## 重複処理
 
-**定義**: ループ変数に依存しない処理（loop-invariant）をループ内で毎回実行し、コストを n 倍にするパターン。別名: loop-invariant code motion の欠如。
+**定義**: 同じ入力や論理的に同じデータに対する処理を繰り返すパターン。固定入力の計算を外に出す方法と、安定したキーで結果を再利用する方法がある。
 
 **メンタルモデル**: 「この処理はループの外に出せるか？ 結果はループの途中で変わらないか？」
 
@@ -99,14 +99,14 @@
 | 定数の計算（`Math.sqrt(N)` 等） | ループ外の変数に保持 |
 | DOM クエリ（`document.getElementById`）を毎回実行 | ループ外で参照を保持 |
 | 同じ設定ファイルの読み込みを毎回実行 | ループ外でキャッシュ |
-| `useQuery` / cache を不安定 key（UUID / Date.now / 毎回新 object）で毎レンダー呼ぶ | 不安定値を queryKey から除外し primitive のみで構成（[Query Key Factory パターン](https://tkdodo.eu/blog/effective-react-query-keys)） |
+| 同じデータなのに毎回異なる query key で cache miss | 結果に影響する入力とキャッシュの適用範囲をキーに反映する |
 
 「ループ内の他パターン」の具体例一覧は [ループ内 JSON.parse — 同カテゴリの他パターン](../patterns/json-parse-in-loop/#同カテゴリの他パターンループ外移出) を参照してください。
 
 ### 該当パターン
 
-- [ループ内 JSON.parse](../patterns/json-parse-in-loop/) — O(n × parse) → O(parse + n)。改善比 **46×**（n=100,000）
-- [不安定な cache key による cache miss 永続化](../patterns/unstable-cache-key/) — O(n × fetch) → O(fetch + n)。改善比 **89.2×**（n=1,000、Node v24 / M5 Pro。Issue 本文の Node v20 報告では 251×）
+- [ループ内 JSON.parse](../patterns/json-parse-in-loop/) — O(n × parse) → O(parse + n)。
+- [不安定な cache key による cache miss 永続化](../patterns/unstable-cache-key/) — O(n × fetch) → O(fetch + n)。
 
 ### 一次情報
 

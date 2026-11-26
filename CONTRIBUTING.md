@@ -6,7 +6,7 @@
 
 - 実測で **9× 以上**の改善が確認できること
 - JIT / オプティマイザが自動吸収しないパターンであること
-- 手元で動くベンチマークコードが添付されていること
+- パターンに実行できるコードと再現手順があり、改善前後で同じ結果を返すこと
 
 ## 掲載しないパターンの判定理由
 
@@ -25,14 +25,14 @@
 - **serious helper は別ファイル**: warmup・DCE 回避・p95/std 等を含む計測 helper はパターンディレクトリ内の `bench.ts` / `bench.sh` に実装し、CONTRIBUTING の共通 helper には載せない
 - **inline は minimal**: パターン README に貼る計測コードは「コア比較」のみに留め、詳細実装は同ディレクトリの `bench.*` を参照する形にする
 - **単一倍率断言禁止**: 「9× である」と書かず、Node version / V8 / n / iterations / elements kind を条件併記する (記載例: [loop-unshift の実測値ブロック](patterns/loop-unshift/README.md#実測値参考))
-- **helper sync 前提逸脱は許容**: 後述の `benchmark()` helper は **sync 関数向けの最小実装** で、async pattern (DB query / network / cache / `await` ループ系) や DB / 外部 process 系 (bash + psql 等) では各パターンの bench 実装が inline で独自 harness を持つ
+- **helper sync 前提逸脱は許容**: 後述の `benchmark()` helper は **sync 関数向けの最小実装** で、async pattern (DB query / network / cache / `await` ループ系) や DB / 外部 process 系 (bash + psql 等) では各パターンの実行ファイルで計測する
 
 ### 参照実装一覧
 
 | パターン軸 | 参照 |
 |---|---|
 | sync + warmup + p95/std | [patterns/loop-unshift/bench.ts](patterns/loop-unshift/bench.ts) |
-| async (Node + Prisma + inline async harness) | [patterns/orm-eager-loading-explosion/](patterns/orm-eager-loading-explosion/) |
+| async (Node + Prisma) | [patterns/orm-eager-loading-explosion/](patterns/orm-eager-loading-explosion/) |
 | 不安定 cache key (process.hrtime + sink escape) | [patterns/unstable-cache-key/](patterns/unstable-cache-key/) |
 | 外部 process (bash + psql + EXPLAIN ANALYZE) | [patterns/postgres-seq-scan/](patterns/postgres-seq-scan/) |
 
@@ -40,7 +40,7 @@
 
 1. `patterns/slug/` ディレクトリを作成（番号なし・意味のあるスラッグのみ）
 2. `patterns/slug/README.md` に以下の構造で記述
-3. `README.md` のパターン一覧テーブルに 1 行追加し、`#` 列に通し番号を振る
+3. `README.md` から実測値へリンクし、`docs/bottleneck-types.md` に検出シグナルとパターンを追加する。計測値はパターン側で管理する
 4. PR を送る
 
 ## パターン README のテンプレート
@@ -72,7 +72,7 @@
 
 ## ベンチマーク
 
-<計測ヘルパーを先に実行してから以下を実行してください>
+<動作環境、セットアップ、実行コマンド、出力の同等性確認を書いてください>
 
 \`\`\`javascript
 // ベンチマークコード

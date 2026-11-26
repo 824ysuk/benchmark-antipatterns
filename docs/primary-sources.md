@@ -1,8 +1,8 @@
-# 一次情報 hub
+# 出典一覧
 
-各 pattern / docs が参照する V8 公式 / ECMA-262 / 著名 perf 文書を Tier 別に集約します。読者が「この主題はどの信頼度で裏付けられているか」を即座に判断できるよう、各 URL に Tier ラベル（T1〜T4）を付けています。
+仕様、製品の公式文書、実装者の解説、補助資料を集めています。仕様上の保証、特定の実装の挙動、このリポジトリの実測値を区別します。Tier 1 は仕様・公式資料、Tier 2 は実装者などによる解説、Tier 3 は補助資料、Tier 4 はアルゴリズム理論です。
 
-各 pattern README の「参考」節と `docs/bottleneck-types.md` の「一次情報」節はこの hub への参照に統一し、URL を pattern 側に再掲しません（重複削減・更新点の単一化）。
+各パターンの参考節から関連資料へ移動できます。技術を横断して探す場合は以下の主題別一覧を使います。
 
 ---
 
@@ -16,6 +16,29 @@
 4. **撤回は削除でなく明記**: 後から誤帰属が判明した出典は **削除せず**「[撤回 / 慎重扱い](#撤回--慎重扱い)」節に残し、撤回理由を書く（同じ誤りの再発を防ぐため）。
 
 ---
+
+## JavaScript の仕様と計測
+
+| 対象 | 仕様・公式資料（Tier 1）で確認すること |
+|---|---|
+| 配列探索 | [Array.find](https://tc39.es/ecma262/multipage/indexed-collections.html#sec-array.prototype.find) の最初の一致、[Array.includes](https://tc39.es/ecma262/multipage/indexed-collections.html#sec-array.prototype.includes) の SameValueZero |
+| 索引化 | [Map と Set](https://tc39.es/ecma262/multipage/keyed-collections.html) の平均劣線形アクセス要件とキー比較 |
+| 累積コピー | [CopyDataProperties](https://tc39.es/ecma262/multipage/abstract-operations.html#sec-copydataproperties) が列挙する own property と [Object.fromEntries](https://tc39.es/ecma262/multipage/fundamental-objects.html#sec-object.fromentries) のプロパティ定義 |
+| 固定入力とキー直列化 | [JSON.parse / JSON.stringify](https://tc39.es/ecma262/multipage/structured-data.html#sec-json-object) の変換、型、エラー |
+| 非同期の集約 | [Promise.all](https://tc39.es/ecma262/multipage/control-abstraction-objects.html#sec-promise.all) の結果順序と拒否 |
+| 実行時間 | [Node.js perf_hooks](https://nodejs.org/api/perf_hooks.html#performancenow) の `performance.now()`、[Google Benchmark](https://google.github.io/benchmark/user_guide.html) の warmup・繰り返し・コンパイラ最適化対策 |
+
+## データアクセスとキャッシュ
+
+| 対象 | 仕様・公式資料（Tier 1）で確認すること |
+|---|---|
+| PostgreSQL のアクセスパス | [PG16 Using EXPLAIN](https://www.postgresql.org/docs/16/using-explain.html) の実測行数・ループ・バッファ、[プランナの統計](https://www.postgresql.org/docs/16/planner-stats.html) の推定根拠 |
+| 索引の適用条件 | PostgreSQL 16 の[複合インデックス](https://www.postgresql.org/docs/16/indexes-multicolumn.html)、[式インデックス](https://www.postgresql.org/docs/16/indexes-expressional.html)、[インデックスのみの走査](https://www.postgresql.org/docs/16/indexes-index-only-scans.html) |
+| ページング | PostgreSQL 16 の [LIMIT / OFFSET](https://www.postgresql.org/docs/16/queries-limit.html) と [行コンストラクタ比較](https://www.postgresql.org/docs/16/functions-comparisons.html#ROW-WISE-COMPARISON) |
+| DB が異なる場合 | [SQLite Query Planning](https://sqlite.org/queryplanner.html) の複合索引、走査とソート |
+| ORM の関連読み込み | [Prisma の relation queries](https://www.prisma.io/docs/orm/prisma-client/queries/relation-queries) と [JOIN 戦略の実装説明](https://www.prisma.io/blog/prisma-orm-now-lets-you-choose-the-best-join-strategy-preview)、[SQLAlchemy の関連読み込み](https://docs.sqlalchemy.org/en/20/orm/queryguide/relationships.html) |
+| キャッシュの同一性 | [TanStack Query Keys](https://tanstack.com/query/latest/docs/framework/react/guides/query-keys) の配列順序・オブジェクトキー順序と [hashKey の実装](https://github.com/TanStack/query/blob/main/packages/query-core/src/utils.ts) |
+| キャッシュの適用範囲 | [RFC 9111](https://www.rfc-editor.org/rfc/rfc9111.html#section-4.1) の HTTP キャッシュにおける Vary とキー。クライアントライブラリの例を一般化するときの比較資料 |
 
 ## Tier 1: V8 公式 (primary)
 
@@ -46,7 +69,7 @@ TC39 が公開する JavaScript 仕様。本 repo での「仕様要件」の唯
 
 ## Tier 1: PostgreSQL 公式 (RDBMS spec / docs)
 
-PostgreSQL global development group が公開する公式 documentation。本 repo の DB 系パターンでの「仕様 / planner 動作」の唯一の根拠。
+PostgreSQL global development group が公開する公式 documentation。プランナの挙動を説明するときは、再現に使用したメジャー版の資料も確認する。
 
 | URL | 主題 |
 |---|---|
@@ -65,8 +88,7 @@ V8 team の現職・元職メンバーが個人 blog で発表した記事。Tie
 | URL | 主題 |
 |---|---|
 | [mathiasbynens.be — shapes-ics](https://mathiasbynens.be/notes/shapes-ics) | shapes / IC の包括解説（Mathias Bynens, V8 team） |
-| [mathiasbynens.be — array-fill-undefined](https://mathiasbynens.be/notes/javascript-array-fill-undefined) | array holes と HOLEY kind 退化 |
-| [mrale.ph — monomorphism](https://mrale.ph/blog/2015/01/11/whats-up-with-monomorphism.html) | monomorphism / IC（V8 team, 2015 時点。**Crankshaft → TurboFan 移行前**の文脈に注意） |
+| [mrale.ph — monomorphism](https://mrale.ph/blog/2015-01-11-whats-up-with-monomorphism.html) | monomorphism / IC（V8 team, 2015 時点。**Crankshaft → TurboFan 移行前**の文脈に注意） |
 | [benediktmeurer.de — Impact of polymorphism on component-based frameworks like React](https://benediktmeurer.de/2018/03/23/impact-of-polymorphism-on-component-based-frameworks-like-react/) | 4-way polymorphic / MEGAMORPHIC IC の性能 cliff 解析（TurboFan, 2018-03-23 時点。Maglev 登場前。具体数値「100 shapes: 43 ms → 900 shapes: 2428 ms」等を含む。1.4× は本記事内ではなく Builder.io / Hevery 2023-02 が canonical） |
 | [benediktmeurer.de — JavaScript engine fundamentals: Shapes and Inline Caches](https://benediktmeurer.de/2018/06/14/javascript-engine-fundamentals-shapes-and-inline-caches/) | Shapes / Inline Caches の包括解説 |
 
@@ -85,13 +107,11 @@ V8 team の現職・元職メンバーが個人 blog で発表した記事。Tie
 | [romgrk.com — optimizing-javascript](https://romgrk.com/posts/optimizing-javascript) | V8 内部最適化の俯瞰（補助参照。一次断定には使わない） |
 | [github.com/davidmarkclements/v8-perf](https://github.com/davidmarkclements/v8-perf) | V8 6.0 / 6.1 fast path、Node コミュニティ参照（旧バージョン情報。current V8 と差異あり） |
 | [use-the-index-luke.com](https://use-the-index-luke.com/) | SQL indexing と performance の体系的解説（DB 横断: PostgreSQL / MySQL / Oracle / SQL Server。著者 Markus Winand。引用時は対象 DB を併記） |
-| [tanstack.com/query — Query Keys](https://tanstack.com/query/latest/docs/framework/react/guides/query-keys) | TanStack Query v5 の queryKey deterministic hashing 仕様（plain object key 順序吸収・JSON.stringify 前提） |
-| [github.com/TanStack/query — query-core/src/utils.ts](https://github.com/TanStack/query/blob/main/packages/query-core/src/utils.ts) | `hashKey`: JSON.stringify + plain object key sort の実装 source（v5 main） |
 | [tkdodo.eu — Effective React Query Keys](https://tkdodo.eu/blog/effective-react-query-keys) | TanStack Query maintainer (tkdodo) の Query Key Factory パターン解説 |
 | [swr.vercel.app — Arguments](https://swr.vercel.app/docs/arguments) | SWR 1.1.0 以降の object key auto-serialize 仕様 |
-| [redux-toolkit.js.org — createApi (serializeQueryArgs)](https://redux-toolkit.js.org/rtk-query/api/createApi) | RTK Query の serializeQueryArgs 仕様（sort + stringify + endpoint 名連結） |
+| [redux-toolkit.js.org — createApi (serializeQueryArgs)](https://redux.js.org/toolkit/rtk-query/api/createApi) | RTK Query の serializeQueryArgs 仕様（sort + stringify + endpoint 名連結） |
 | [apollographql.com — Cache Configuration](https://www.apollographql.com/docs/react/caching/cache-configuration) | Apollo Client の cache normalization (`__typename:id`) と operation variables serialization の分離 |
-| [nearform.com — urql Document Caching](https://nearform.com/open-source/urql/docs/basics/document-caching/) | urql の document AST + variables hash 仕様 |
+| [nearform.com — urql Document Caching](https://urql.dev/docs/basics/document-caching/) | urql の document AST + variables hash 仕様 |
 
 ---
 
@@ -104,7 +124,7 @@ engine 実装に依存しない理論的根拠。URL がない書籍（CLRS 等�
 | CLRS *Introduction to Algorithms* §17.4 Aggregate method（書籍。URL なし） | dynamic table 解析 — `push` amortized O(1) の理論根拠 |
 | [Bugzilla #1348772](https://bugzilla.mozilla.org/show_bug.cgi?id=1348772) | SpiderMonkey `shift` O(1) 化議論 — 「O(n) は仕様要件ではない（実装収束）」根拠 |
 | [Big-O Cheat Sheet](https://www.bigocheatsheet.com/) | 各データ構造・操作の計算量リファレンス |
-| [MDN: Promise.all()](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise/all) | 並列実行のセマンティクスと注意点（仕様補助。Tier 1 の ECMA-262 §27.2.4.3 を補う） |
+| [MDN: Promise.all()](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise/all) | 並列実行のセマンティクスと注意点（仕様補助。Tier 1 の ECMA-262 Promise.all 節 を補う） |
 
 ---
 
@@ -115,6 +135,8 @@ engine 実装に依存しない理論的根拠。URL がない書籍（CLRS 等�
 | 出典 | 撤回 / 慎重扱いの理由 |
 |---|---|
 | ~~puzpuzpuz gist `d7b3e6c…`~~ (https://gist.github.com/puzpuzpuz/d7b3e6ca17baa241848ff1d15bce87aa) | 主題が **Fastify Web throughput 計測（約 2.8× 差）** で、**Array Elements Kinds 劣化の測定ではない**。本 repo の Issue #10 草稿で Elements Kinds 劣化の根拠として誤帰属していたため撤回。今後同 gist を Array Elements Kinds の根拠としては引用しない |
+| Bynens の旧 array-fill-undefined リンク | 取得時に 404。要素種別と hole の説明は V8 公式の Elements Kinds を参照 |
+| Tomoharu Tsutsumi「How to Avoid O(N²)」の旧 Medium リンク | 取得時に HTTP 403。配列探索と Map の根拠は上の ECMA-262 仕様を参照 |
 | Medium / dev.to の単発記事（generator 1.45×、`filter().map()` 1.55× 等の引用例） | engine / V8 version / workload / n / warmup が開示されておらず portable な数値として引用不可。条件を補えば Tier 3 として扱う余地はあるが、補えない限り引用しない |
 
 ---
@@ -125,9 +147,9 @@ pattern や docs で「この主題の根拠は？」と聞かれたときに参
 
 | 主題 | 主に参照する Tier / URL |
 |---|---|
-| Elements Kinds 退化 | T1 [elements-kinds](https://v8.dev/blog/elements-kinds) / T2 [array-fill-undefined](https://mathiasbynens.be/notes/javascript-array-fill-undefined) |
+| Elements Kinds 退化 | T1 [elements-kinds](https://v8.dev/blog/elements-kinds) |
 | `Array.prototype.fill` の例外（2025-02-28 時点） | T1 [elements-kinds](https://v8.dev/blog/elements-kinds)（`new Array(n).fill(0)` が PACKED_SMI を維持する条件は元記事参照） |
-| hidden class / IC | T1 [fast-properties](https://v8.dev/blog/fast-properties) / T1 [hidden-classes](https://v8.dev/docs/hidden-classes) / T2 [shapes-ics](https://mathiasbynens.be/notes/shapes-ics) / T2 [monomorphism](https://mrale.ph/blog/2015/01/11/whats-up-with-monomorphism.html) |
+| hidden class / IC | T1 [fast-properties](https://v8.dev/blog/fast-properties) / T1 [hidden-classes](https://v8.dev/docs/hidden-classes) / T2 [shapes-ics](https://mathiasbynens.be/notes/shapes-ics) / T2 [monomorphism](https://mrale.ph/blog/2015-01-11-whats-up-with-monomorphism.html) |
 | IC monomorphic vs polymorphic vs megamorphic の数値 | T3 [builder.io](https://www.builder.io/blog/monomorphic-javascript)（Hevery 2023-02、条件込み。4-way ≈ 1.4× の canonical） / T2 [Meurer 2018 impact-of-polymorphism](https://benediktmeurer.de/2018/03/23/impact-of-polymorphism-on-component-based-frameworks-like-react/)（MEGAMORPHIC cliff の具体数値） |
 | `push` / `unshift` 仕様 | T1 ECMA-262 [§23.1.3.23 push](https://tc39.es/ecma262/#sec-array.prototype.push) / [§23.1.3.37 unshift](https://tc39.es/ecma262/#sec-array.prototype.unshift) / T4 CLRS §17.4（amortized） |
 | `shift` O(1) 化の妥当性 | T4 [Bugzilla #1348772](https://bugzilla.mozilla.org/show_bug.cgi?id=1348772)（実装収束、仕様要件ではない） |
@@ -136,10 +158,10 @@ pattern や docs で「この主題の根拠は？」と聞かれたときに参
 | `--jitless` / Lite mode | T1 [jitless](https://v8.dev/blog/jitless)（Ignition のみ動作） |
 | `forEach` inlining | T1 [v8-release-65](https://v8.dev/blog/v8-release-65)（V8 6.5 で `JSCallReducer` 経由） |
 | ループ性能の実証スキャン | T3 [stackinsight.dev](https://stackinsight.dev/blog/loop-performance-empirical-study) |
-| 非同期並列化（`Promise.all`） | T4 [MDN: Promise.all](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise/all)（補助。仕様は ECMA-262 §27.2.4.3） |
+| 非同期並列化（`Promise.all`） | T4 [MDN: Promise.all](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise/all)（補助。仕様は ECMA-262 Promise.all 節） |
 | PostgreSQL B-tree index / seq scan / EXPLAIN | T1 [Indexes](https://www.postgresql.org/docs/current/indexes.html) / T1 [Index Types](https://www.postgresql.org/docs/current/indexes-types.html) / T1 [Using EXPLAIN](https://www.postgresql.org/docs/current/using-explain.html) / T3 [use-the-index-luke](https://use-the-index-luke.com/)（DB 横断） |
 | reduce + spread / loop-invariant の解説 | T3 [richsnapp.com](https://www.richsnapp.com/article/2019/06-09-reduce-spread-anti-pattern) / T3 [romgrk.com](https://romgrk.com/posts/optimizing-javascript)（V8 がループ不変式を自動で外に出さないケース） |
-| クライアントキャッシュの queryKey hashing | T3 [TanStack Query — Query Keys](https://tanstack.com/query/latest/docs/framework/react/guides/query-keys) / T3 [hashKey source](https://github.com/TanStack/query/blob/main/packages/query-core/src/utils.ts) / T3 [tkdodo — Effective React Query Keys](https://tkdodo.eu/blog/effective-react-query-keys) / T3 [SWR — Arguments](https://swr.vercel.app/docs/arguments) / T3 [RTK Query — createApi](https://redux-toolkit.js.org/rtk-query/api/createApi) / T3 [Apollo — Cache Configuration](https://www.apollographql.com/docs/react/caching/cache-configuration) / T3 [urql — Document Caching](https://nearform.com/open-source/urql/docs/basics/document-caching/) |
+| クライアントキャッシュの queryKey hashing | T1 [TanStack Query — Query Keys](https://tanstack.com/query/latest/docs/framework/react/guides/query-keys) / T1 [hashKey source](https://github.com/TanStack/query/blob/main/packages/query-core/src/utils.ts) / T3 [tkdodo — Effective React Query Keys](https://tkdodo.eu/blog/effective-react-query-keys) / T3 [SWR — Arguments](https://swr.vercel.app/docs/arguments) / T3 [RTK Query — createApi](https://redux.js.org/toolkit/rtk-query/api/createApi) / T3 [Apollo — Cache Configuration](https://www.apollographql.com/docs/react/caching/cache-configuration) / T3 [urql — Document Caching](https://urql.dev/docs/basics/document-caching/) |
 
 ---
 
@@ -147,7 +169,7 @@ pattern や docs で「この主題の根拠は？」と聞かれたときに参
 
 本 hub を更新するときの運用ルール。
 
-- 全 URL は Issue [#14](https://github.com/824ysuk/benchmark-antipatterns/issues/14) の整理表と整合させる（追加・撤回時は Issue 側にも反映）。
+- 引用先の主題とバージョンを確認し、現行の出典と撤回事由をこのページで管理する。
 - Tier 4 の CLRS は **書籍として明記**し URL を書かない（オンライン版に確定的な permalink がないため）。
 - 撤回情報は削除しない（再発防止のため履歴を残す）。
 - ECMA-262 の section 番号は **current draft の番号** を使う（`§23.1.3.37 unshift` / `§23.1.3.23 push`）。`section 番号 + edition 年` 併記が望ましい。
@@ -161,4 +183,4 @@ pattern や docs で「この主題の根拠は？」と聞かれたときに参
 
 カテゴリ別の解説と検出シグナルは [docs/bottleneck-types.md](bottleneck-types.md) を参照してください。同 docs の「一次情報」節は本 hub への参照に統一されています（URL は本 hub 側で管理）。
 
-各 pattern README の「参考」節は本 hub の Tier X / 主題 → 根拠 URL 早見表を参照する形に統一し、URL を pattern README に再掲しません（重複削減・更新漏れ防止）。pattern 固有の実測値は pattern 内の §実測値表に inline で残します。
+各パターンの実測値と実行条件はパターンの README で確認できます。掲載候補に関する参照は [掲載候補の調査表](coverage.md) にあります。
