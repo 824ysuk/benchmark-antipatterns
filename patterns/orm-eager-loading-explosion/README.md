@@ -70,8 +70,7 @@ cp schema.prisma seed.cjs bench.cjs "$bench_dir"
 cd "$bench_dir"
 npm install --save-exact prisma@6.19.3 @prisma/client@6.19.3
 npx prisma db push --schema schema.prisma
-node seed.cjs
-node bench.cjs
+node seed.cjs && node bench.cjs
 ```
 
 同じ並び順を指定し、各反復で両戦略のネストした結果が一致することを確認します。2 回ウォームアップした後、実行順を交互にして各 10 回計測します。外部キー列のインデックスが性能差に与える影響を見るには、同じ DB で次を適用して再計測します。
@@ -111,7 +110,7 @@ Node.js 24.22.2 / Prisma 6.19.3 / PostgreSQL 16.14、Linux arm64（Docker on App
 | Hibernate / JPA | 同問題 | [`MultipleBagFetchException` で同階層複数 bag は runtime 拒否](https://vladmihalcea.com/hibernate-multiplebagfetchexception/) |
 | TypeORM | 同問題 | [`relationLoadStrategy: "query"`](https://typeorm.io/docs/working-with-entity-manager/find-options/) |
 
-Rails の語彙が最も明確で、Prisma `include`（default）は Rails の `eager_load` 相当、`relationLoadStrategy: "query"` は `preload` 相当。
+Rails の平坦な JOIN と Prisma の PostgreSQL 向け LATERAL・JSON 集約では、結果を組み立てる場所と中間行の形が異なります。
 
 ## 参考
 

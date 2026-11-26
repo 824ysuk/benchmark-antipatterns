@@ -24,10 +24,15 @@ function median(samples) {
 async function main() {
   const strategies = ['join', 'query'];
   const samples = { join: [], query: [] };
-  const count = await client.user.count();
-  assert.equal(count, 100, 'Run the benchmark seed first.');
+  const counts = await client.$transaction([
+    client.user.count(),
+    client.order.count(),
+    client.orderItem.count(),
+    client.itemReview.count(),
+  ]);
+  assert.deepStrictEqual(counts, [100, 1000, 5000, 15000], 'Run the complete seed in a fresh benchmark database.');
   const [{ server_version: postgres }] = await client.$queryRaw`SHOW server_version`;
-  console.log(`node=${process.version} prisma=6.19.3 postgres=${postgres} users=${count}`);
+  console.log(`node=${process.version} prisma=6.19.3 postgres=${postgres} users=${counts[0]}`);
 
   for (let round = 0; round < 12; round++) {
     const results = {};
