@@ -258,9 +258,9 @@ mode 2/3 の hashKey collision 検証 (n=1,000):
 
 - [検索キーとキャッシュ適用範囲の資料](../../docs/primary-sources.md#データアクセスとキャッシュ)
 
-引用 Tier は [docs/primary-sources.md](../../docs/primary-sources.md) 体系に従う (Tier 1: 公式 / spec、Tier 2: engine team、Tier 3: 信頼性ある二次、Tier 4: 理論)。本パターンは library 公式 docs / source / maintainer 解説が主要根拠で、V8 / ECMA-262 直結ではないため Tier 3 が中心。
+引用 Tier は [docs/primary-sources.md](../../docs/primary-sources.md) 体系に従う (Tier 1: 公式 / spec、Tier 2: engine team、Tier 3: 信頼性ある二次、Tier 4: 理論)。キー比較の根拠には TanStack Query の公式文書と実装を参照します。
 
-- **Tier 3**: [Query Keys — TanStack Query Documentation (React)](https://tanstack.com/query/latest/docs/framework/react/guides/query-keys) — deterministic hashing の公式仕様説明
+- **Tier 1**: [Query Keys — TanStack Query Documentation (React)](https://tanstack.com/query/latest/docs/framework/react/guides/query-keys) — deterministic hashing の公式仕様説明
 - **Tier 1**: [TanStack/query — query-core/src/utils.ts `hashKey`](https://github.com/TanStack/query/blob/main/packages/query-core/src/utils.ts) — JSON.stringify + plain object key sort の実装
 - **Tier 3**: [TanStack/query Discussion #4079 — Infinite loop when queryKey property changes](https://github.com/TanStack/query/discussions/4079) — mode 1 の実害報告
 - **Tier 3**: [TanStack/query Discussion #5098 — How to set correct queryKey for pre-memoized queryFn](https://github.com/TanStack/query/discussions/5098) — maintainer による `queryKeyHashFn` 推奨
