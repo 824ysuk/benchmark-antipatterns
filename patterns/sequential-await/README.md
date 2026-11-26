@@ -39,6 +39,8 @@ node patterns/sequential-await/bench.ts
 
 ## 実測値（参考）
 
+タイマー設定は各 2 ms。
+
 Apple M5 Pro、Docker の Linux arm64。Node.js 24.22.2（V8 13.6.233.17-node.63）と Node.js 22.23.4（V8 12.4.254.21-node.57）で各 2 回ウォームアップ + 10 回計測。
 
 | Node.js・入力 | 改善前の中央値 ± 標準偏差 (ms) | 改善後の中央値 ± 標準偏差 (ms) | 中央値の比 |
