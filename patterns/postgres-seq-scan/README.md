@@ -2,7 +2,7 @@
 
 **カテゴリ**: [計算量の無駄](../../docs/bottleneck-types.md#計算量の無駄)
 **計算量の変化**: O(n) → O(log n)
-**実測改善比**: 約 400× オーダー（PostgreSQL 16.14 / 1,000,000 行 / point lookup `WHERE email = '...'` で 433.7×。**selectivity に強く依存**し、low selectivity (2% hit) は 1.9× にとどまる。詳細は [実測値](#実測値参考) と [注意・例外](#注意例外とても重要) を参照）
+**実測改善比**: 約 400× オーダー（PostgreSQL 16.14 / 1,000,000 行 / point lookup `WHERE email = '...'` で 433.7×。**selectivity に強く依存**し、low selectivity (2% hit) は 1.9× にとどまる。詳細は [実測値](#実測値参考) と [注意・例外](#注意例外) を参照）
 
 ## 問題
 
@@ -10,7 +10,7 @@
 
 PostgreSQL（および他の RDBMS）で **index がない column を `WHERE` 句で point lookup する** と、planner が seq scan を選択し全行を線形に走査する。B-tree index がある同じ query は O(log n) で完了するため、大きい table では桁違いに差がつく。
 
-各テーブルに B-tree index を貼っていれば 1 回の lookup は ~20 比較で済むが、index がなければ 100 万行すべてを `Filter` で評価する。この差は **RDBMS engine 固有 API ではなくデータ構造の選択** (B-tree vs 連続配列) に起因するアルゴリズム的問題で、MySQL / SQLite / MongoDB / Elasticsearch でも同じ構造で発生する ([他 DB / 言語での同問題](#他-db--言語での同問題) 参照)。
+このデータでは B-tree の探索で 1 件を取得でき、索引のない実行計画では 100 万行を `Filter` の対象にする。この差は **RDBMS engine 固有 API ではなくデータ構造の選択** (B-tree vs 連続配列) に起因するアルゴリズム的問題で、MySQL / SQLite / MongoDB / Elasticsearch でも走査と索引の違いとして現れることがある ([他 DB / 言語での同問題](#他-db--言語での同問題) 参照)。
 
 ## ❌ アンチパターン
 
@@ -36,7 +36,7 @@ SELECT * FROM users WHERE email = 'user-500000@example.com';
  Execution Time: 28.155 ms
 ```
 
-100 万行で `Buffers: shared hit=9854` (≈ 77MB) すべてを scan している。テーブルが大きいほど線形に遅くなる (1 億行なら ~1 秒以上)。
+100 万行で `Buffers: shared hit=9854` (≈ 77MB) すべてを scan している。走査行数はテーブル行数に比例する。実時間は I/O、並列度、キャッシュの影響を受ける。
 
 ## ✅ 改善後
 
@@ -56,7 +56,7 @@ SELECT * FROM users WHERE email = 'user-500000@example.com';
  Execution Time: 0.059 ms
 ```
 
-B-tree は **O(log n)** で目的の row に辿り着く。100 万行なら ~20 比較。`Buffers: shared hit=1 read=3` から、scan 対象が 4 ページ (= ~32 KB) で済んでいることが読み取れる。
+B-tree は **O(log n)** で目的の row に辿り着く。`Buffers: shared hit=1 read=3` から、scan 対象が 4 ページ (= ~32 KB) で済んでいることが読み取れる。
 
 ## ベンチマーク
 
@@ -65,57 +65,34 @@ B-tree は **O(log n)** で目的の row に辿り着く。100 万行なら ~20 
 ### 環境セットアップ
 
 ```bash
-# 1. PostgreSQL container を起動 (既に bap-pg-bench を別パターンで起動済なら skip)
+# 1. PostgreSQL container を起動（既に検証用コンテナがあれば省略）
 docker run -d --name bap-pg-bench \
-  -e POSTGRES_PASSWORD=bench -p 55432:5432 postgres:16-alpine
+  -e POSTGRES_PASSWORD=bench postgres:16-alpine
 
-# 2. schema + 1,000,000 行 seed (新規 DB `bench_seqscan` を作成、orm 用 DB と隔離)
-docker exec -i bap-pg-bench psql -U postgres < setup.sql
+# 2. schema + 1,000,000 行 seed (新規 DB `bench_seqscan` を作成、空の検証専用コンテナで実行)
+docker exec -i bap-pg-bench psql -v ON_ERROR_STOP=1 -U postgres < setup.sql
 ```
+
+同じコンテナで再計測する場合はセットアップを省略し、`bench.sh` から実行します。別のコンテナ名を使う場合は `CONTAINER` を指定できます。
 
 ### bench 実行
 
 ```bash
 bash bench.sh
-# 反復回数を変えたい場合 (既定: 5 反復、cold cache を 1 回捨てて 4 値の median):
+# 反復回数を変えたい場合 (既定: 5 反復、初回を除いた 4 値の中央値):
 RUNS=10 bash bench.sh
 ```
 
 `bench.sh` は以下を行う:
-- Mode 1 (no secondary index) で Query A (point lookup) / B (low selectivity) を各 5 反復計測
+- Mode 1 (no secondary index) で Query A (point lookup) / B（2% 一致） を各 5 反復計測
 - `CREATE INDEX users_email_idx` / `users_city_idx` を貼って `VACUUM ANALYZE`
 - Mode 2 (with index) で同じ Query A / B を 5 反復計測
-- 各組から初回 (cold cache) を捨てて 2-5 の中央値を出す
+- 各組から初回 を捨てて 2-5 の中央値を出す
 - 最後に `DROP INDEX` で初期状態に戻す (再実行可能)
-
-### 計測コアロジック (bench.sh から抜粋)
-
-```bash
-# 5 反復、初回 cold cache を捨てて 2-5 の median
-measure() {
-  local label="$1"
-  local sql="$2"
-  local times=()
-  for i in $(seq 1 5); do
-    out=$(docker exec bap-pg-bench psql -U postgres -d bench_seqscan \
-      -c "DISCARD ALL;" \
-      -c "EXPLAIN (ANALYZE, BUFFERS) ${sql}")
-    t=$(echo "${out}" | grep -E "Execution Time" | head -1 \
-      | sed -E 's/.*Execution Time: ([0-9.]+) ms.*/\1/')
-    [[ "${i}" -ne 1 ]] && times+=("${t}")
-  done
-  printf '%s\n' "${times[@]}" | sort -g | awk '
-    { a[NR]=$1 } END { n=NR;
-      if (n%2==1) print a[(n+1)/2]
-      else        printf "%.4f\n", (a[n/2]+a[n/2+1])/2 }'
-}
-```
-
-完成版は本ディレクトリ同梱の [`bench.sh`](./bench.sh) と [`setup.sql`](./setup.sql) を参照。
 
 ## 実測値（参考）
 
-データ規模: 1,000,000 行 (`users(id BIGINT PK, email TEXT, city TEXT, created_at TIMESTAMP)`)、tokyo hit 20,000 (= 2% selectivity)。median は run 2-5 から取得 (run 1 = cold cache)。
+データ規模: 1,000,000 行 (`users(id BIGINT PK, email TEXT, city TEXT, created_at TIMESTAMP)`)、tokyo hit 20,000 (= 2% selectivity)。median は run 2-5 から取得 (run 1 は集計外)。
 
 環境: macOS 26.5.1 (Darwin 25.5.0) / arm64 / Apple M5 Pro / PostgreSQL 16.14 (alpine, Docker) / `shared_buffers=128MB` (default) / `max_parallel_workers_per_gather=2` (default)。
 
@@ -135,34 +112,19 @@ measure() {
 | Mode 1 (no index) | Parallel Seq Scan (2 workers) | shared hit=9,854 | **13.53 ms** |
 | Mode 2 (with index) | Bitmap Heap Scan ← Bitmap Index Scan | shared hit=9,854, read=19 | **7.13 ms** |
 
-**ratio: 1.9×** ❌ 9× 未達
+**ratio: 1.9×**（このケースは掲載基準の 9× 未達）
+
+再計測（PostgreSQL 16.14 / Docker arm64、100 万行、run 2–5 の中央値）では A が 15.2010 → 0.0350 ms（434.3×）、B が 15.0885 → 7.2195 ms（2.1×）でした。
 
 > 結果は実行環境・ハードウェアによって変わります。同じ環境で改善前後を比較することが重要です。Issue #17 当初の計測 (388×) と本実装の計測 (433.7×) は ±20% 程度の幅で同オーダー。
 
-## 注意・例外（とても重要）
+## 注意・例外
 
-本パターンは「index 追加で常に 9× 改善する」という主張ではない。**改善幅は selectivity (hit rate) と table の RAM-residency に強く依存する**。
+初回除外はコールドキャッシュの保証ではありません。PostgreSQL の共有バッファと OS キャッシュはセッションを作り直しても残ります。各モードの実行計画と `BUFFERS` を確認します。
 
-| 条件 | index による改善幅 |
-|---|---|
-| **point lookup / unique value（Query A）** | 数十倍～数千倍（今回 **433×**） |
-| **high selectivity（hit < 0.1%）** | 数倍～数百倍 |
-| **moderate selectivity（hit 1-5%、今回 Query B = 2%）** | **1-3×**（heap fetch コストが支配的、bitmap index でも seq scan と差がつかない） |
-| **low selectivity（hit > 30%）** | ~1× ないし逆転（planner も index を使わず seq scan を選ぶ） |
+インデックスの効果は一致行の割合、行の物理配置、テーブルと索引のサイズ、統計、キャッシュ状態に依存します。この実測では 1 件を返す A が 433.7×、一致率 2% の B が 1.9× でした。B では該当行が広い範囲のヒープページに分散していたため、Bitmap Heap Scan でも多数のページを読みます。一致率だけで一般的なしきい値は決まりません。
 
-### 「9× 出ない」典型ケース
-
-- **table 全体が `shared_buffers` に収まる** + **selectivity が moderate** の組み合わせ。今回の Query B (`city='tokyo'` 2%) はこのケース:
-  - heap 77MB が shared_buffers 128MB に収まる → seq scan も全 in-memory
-  - Bitmap Heap Scan も結局 `Heap Blocks: exact=9854` を再 fetch
-  - 1.9× で benchmark-antipatterns の 9× 基準を満たさない
-- **table が大きく I/O コストが seq scan に乗る** 環境では Query B のような low/moderate selectivity でも index 効果が大きく出る可能性がある (要再計測)
-
-### 適用しない方が良いケース
-
-- **すべての column に index を貼る**: 書き込みコスト (`INSERT` / `UPDATE` / `DELETE`) が線形に増える。index は read-heavy column に限る
-- **selectivity が高すぎる column (boolean / status の 2-3 値)**: planner が index を無視して seq scan を選ぶことが多い
-- **頻繁に変わる column を index にする**: index 再構築コストで write が劇的に遅くなる
+`ANALYZE` 後も Seq Scan が選ばれるときは、推定行数と実測行数、フィルタとインデックス条件の違いを確認します。索引の追加には書き込み時の保守と保存領域も必要です。
 
 ### 関連する Big-O 拡張
 
@@ -186,6 +148,9 @@ measure() {
 これは「データ構造の選択」レベルの問題で、RDBMS / NoSQL / 全文検索 すべてに通底する。benchmark-antipatterns の既存 5 パターンと同じく **アルゴリズム的問題**。
 
 ## 参考
+
+
+- [PostgreSQL 16 の実行計画・統計・索引](../../docs/primary-sources.md#データアクセスとキャッシュ)
 
 引用 Tier は [docs/primary-sources.md](../../docs/primary-sources.md) 体系に従う（Tier 1: 公式 / spec、Tier 2: engine team、Tier 3: 信頼性ある二次、Tier 4: 理論）。
 
