@@ -35,8 +35,8 @@
 
 ### 該当パターン
 
-- [ループ内 線形探索](../patterns/loop-linear-search/) — `find` をループ内で呼び O(n²)、Map 構築で O(n) に改善。
-- [ループ内 includes → Set](../patterns/loop-includes-to-set/) — `includes` をループ内で呼び O(n²)、Set 構築で O(n) に改善。
+- [ループ内 線形探索](../patterns/loop-linear-search/) — n 件から m 件を繰り返し探す最悪 O(nm) の処理を、ハッシュ索引で平均 O(n+m) に改善。
+- [ループ内 includes → Set](../patterns/loop-includes-to-set/) — n 件を m 件の許可リストで照合する最悪 O(nm) の処理を、ハッシュ索引で平均 O(n+m) に改善。
 - [reduce + スプレッド](../patterns/reduce-spread/) — `reduce` 内スプレッドが O(n²)、直接変更で O(n) に。
 - [ORM ネスト include のカルテシアン爆発](../patterns/orm-eager-loading-explosion/) — 平坦な JOIN の行増幅と、Prisma の関連集約における反復走査を区別する。
 - [ループ内 unshift](../patterns/loop-unshift/) — 先頭挿入が要素全シフトで O(n²)、push + reverse で O(n) に改善。

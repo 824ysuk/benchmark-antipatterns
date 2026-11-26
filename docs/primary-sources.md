@@ -163,7 +163,7 @@ pattern や docs で「この主題の根拠は？」と聞かれたときに参
 | 非同期並列化（`Promise.all`） | T4 [MDN: Promise.all](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise/all)（補助。仕様は ECMA-262 Promise.all 節） |
 | PostgreSQL B-tree index / seq scan / EXPLAIN | T1 [Indexes](https://www.postgresql.org/docs/current/indexes.html) / T1 [Index Types](https://www.postgresql.org/docs/current/indexes-types.html) / T1 [Using EXPLAIN](https://www.postgresql.org/docs/current/using-explain.html) / T3 [use-the-index-luke](https://use-the-index-luke.com/)（DB 横断） |
 | reduce + spread / loop-invariant の解説 | T3 [richsnapp.com](https://www.richsnapp.com/article/2019/06-09-reduce-spread-anti-pattern) / T3 [romgrk.com](https://romgrk.com/posts/optimizing-javascript)（V8 がループ不変式を自動で外に出さないケース） |
-| クライアントキャッシュの queryKey hashing | T3 [TanStack Query — Query Keys](https://tanstack.com/query/latest/docs/framework/react/guides/query-keys) / T3 [hashKey source](https://github.com/TanStack/query/blob/main/packages/query-core/src/utils.ts) / T3 [tkdodo — Effective React Query Keys](https://tkdodo.eu/blog/effective-react-query-keys) / T3 [SWR — Arguments](https://swr.vercel.app/docs/arguments) / T3 [RTK Query — createApi](https://redux.js.org/toolkit/rtk-query/api/createApi) / T3 [Apollo — Cache Configuration](https://www.apollographql.com/docs/react/caching/cache-configuration) / T3 [urql — Document Caching](https://urql.dev/docs/basics/document-caching/) |
+| クライアントキャッシュの queryKey hashing | T1 [TanStack Query — Query Keys](https://tanstack.com/query/latest/docs/framework/react/guides/query-keys) / T1 [hashKey source](https://github.com/TanStack/query/blob/main/packages/query-core/src/utils.ts) / T3 [tkdodo — Effective React Query Keys](https://tkdodo.eu/blog/effective-react-query-keys) / T3 [SWR — Arguments](https://swr.vercel.app/docs/arguments) / T3 [RTK Query — createApi](https://redux.js.org/toolkit/rtk-query/api/createApi) / T3 [Apollo — Cache Configuration](https://www.apollographql.com/docs/react/caching/cache-configuration) / T3 [urql — Document Caching](https://urql.dev/docs/basics/document-caching/) |
 
 ---
 
@@ -171,7 +171,7 @@ pattern や docs で「この主題の根拠は？」と聞かれたときに参
 
 本 hub を更新するときの運用ルール。
 
-- 全 URL は Issue [#14](https://github.com/824ysuk/benchmark-antipatterns/issues/14) の整理表と整合させる（現行の出典と撤回事由はこのページを参照）。
+- 引用先の主題とバージョンを確認し、現行の出典と撤回事由をこのページで管理する。
 - Tier 4 の CLRS は **書籍として明記**し URL を書かない（オンライン版に確定的な permalink がないため）。
 - 撤回情報は削除しない（再発防止のため履歴を残す）。
 - ECMA-262 の section 番号は **current draft の番号** を使う（`§23.1.3.37 unshift` / `§23.1.3.23 push`）。`section 番号 + edition 年` 併記が望ましい。
