@@ -1,14 +1,14 @@
 # reduce + スプレッド
 
-**カテゴリ**: [計算量の無駄](../../docs/bottleneck-types.md#計算量の無駄)  
-**計算量の変化**: O(n²) → O(n)  
-**実測改善比**: 1,044×（n=1,000）
+**カテゴリ**: [計算量の無駄](../../docs/bottleneck-types.md#計算量の無駄)\
+**計算量の変化**: O(n²) → O(n)\
+**実測改善比**: 252.5×（n=1,000、下記の計測環境）
 
 ## 問題
 
 > Big-O 記法の前提は [docs/performance-basics.md](../../docs/performance-basics.md) を参照。
 
-`reduce` の中で `{...acc, [key]: value}` を使うと、各ステップで `acc` 全プロパティをコピーする。1 回目は 1 プロパティ、2 回目は 2 プロパティ、…、n 回目は n プロパティをコピーするため、総コピー数は `n(n+1)/2 = O(n²)` になる。
+`reduce` の中で `{...acc, [key]: value}` を使うと、各ステップで `acc` 全プロパティをコピーする。すべてのキーが異なる場合、既存プロパティの総コピー数は 0 + 1 + … + (n−1) = n(n−1)/2。ユニークなキーが k 種類ならコピーの上界は O(nk) になる。
 
 `reduce` の初期値として渡した新規オブジェクトは呼び出し元に渡っていないため、直接変更（ミューテーション）しても副作用はない。これを利用して O(n) で実装できる。
 
@@ -34,34 +34,26 @@ const result = items.reduce((acc, item) => {
 
 ## ベンチマーク
 
-[計測ヘルパー](../../CONTRIBUTING.md#計測ヘルパー)を先に実行してから以下を実行してください。
+Node.js 22.18 以降で、リポジトリ直下から実行します。改善前後の結果が一致することを確認してから計測します。
 
-```javascript
-const N = 1_000;
-const items = Array.from({ length: N }, (_, i) => ({ name: `key${i}`, value: i }));
-
-benchmark('❌ reduce + spread', () => {
-  items.reduce((acc, item) => ({ ...acc, [item.name]: item.value }), {});
-});
-benchmark('✅ reduce + mutate', () => {
-  items.reduce((acc, item) => { acc[item.name] = item.value; return acc; }, {});
-});
+```sh
+node patterns/reduce-spread/bench.ts
 ```
 
 ## 実測値（参考）
 
-| 条件 | 改善前 | 改善後 | 倍率 |
-|---|---|---|---|
-| n = 100 | 0.17 ms | 0.004 ms | **40×** |
-| n = 500 | 3.91 ms | 0.017 ms | **231×** |
-| n = 1,000 | 24.2 ms | 0.023 ms | **1,044×** |
+Apple M5 Pro、Docker の Linux arm64。Node.js 24.22.2（V8 13.6.233.17-node.63）と Node.js 22.23.4（V8 12.4.254.21-node.57）で各 2 回ウォームアップ + 10 回計測。 改善後の標準偏差は中央値の約 6 割で、倍率のばらつきに注意。
 
-> 計測環境: macOS, Apple Silicon, Node.js v24。結果は実行環境・ハードウェアによって変わります。同じ環境で改善前後を比較することが重要です。
+| Node.js・入力 | 改善前の中央値 ± 標準偏差 (ms) | 改善後の中央値 ± 標準偏差 (ms) | 中央値の比 |
+|---|---:|---:|---:|
+| 24.22.2、n=1,000 | 50.651 ± 4.962 | 0.201 ± 0.119 | 252.5× |
+| 22.23.4、n=1,000 | 33.655 ± 2.153 | 0.140 ± 0.051 | 239.7× |
 
 ## 注意・例外
 
 - **外部に渡ってきた `acc` を変更してはいけない**。`reduce` の初期値として自分で `{}` を渡している場合のみ安全。引数として受け取ったオブジェクトを `reduce` の `acc` に渡している場合は呼び出し元への副作用が発生する
-- イミュータブルなデータ構造が必須の文脈（Redux state 等）では ❌ のパターンが正しい選択。パフォーマンスより正確性を優先する
+- 公開済みの state は保持し、新規のローカルオブジェクトに組み立てて完成後に返す。
+- 任意の文字列キーを扱う場合、通常オブジェクトへの代入とオブジェクトリテラルでのプロパティ定義には挙動差がある。`Object.fromEntries(items.map(item => [item.name, item.value]))` も比較候補になる。
 
 ## 同等パターン（配列の `concat`）
 
@@ -80,6 +72,7 @@ items.map(item => item.value);
 
 引用 Tier は [docs/primary-sources.md](../../docs/primary-sources.md) 体系に従う（Tier 1: 公式 / spec、Tier 2: engine team、Tier 3: 信頼性ある二次、Tier 4: 理論）。
 
+- [ECMA-262 のプロパティコピー](../../docs/primary-sources.md#javascript-の仕様と計測)
 - **Tier 3**: [The reduce spread Anti-Pattern — Rich Snapp](https://www.richsnapp.com/article/2019/06-09-reduce-spread-anti-pattern) — V8 バイトコードレベルで O(n²) になる理由の詳細解説
 - **Tier 3**: [Loop Performance Anti-Patterns: 40-Repository Scan — stackinsight.dev](https://stackinsight.dev/blog/loop-performance-empirical-study) — 実コードベース 40 リポジトリでの出現頻度調査
 - [カテゴリ解説: 計算量の無駄 — docs/bottleneck-types.md](../../docs/bottleneck-types.md#計算量の無駄)

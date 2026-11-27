@@ -1,24 +1,24 @@
 # ループ内 includes → Set
 
-**カテゴリ**: [計算量の無駄](../../docs/bottleneck-types.md#計算量の無駄)  
-**計算量の変化**: O(n²) → O(n)  
-**実測改善比**: 42.6×（n=10,000、参考値）
+**カテゴリ**: [計算量の無駄](../../docs/bottleneck-types.md#計算量の無駄)\
+**計算量の変化**: 最悪 O(nm) → 平均 O(n+m)（ハッシュ実装、入力が n 件と m 件）\
+**実測改善比**: 125.0×（n=10,000、下記の計測環境）
 
 ## 問題
 
 > Big-O 記法の前提は [docs/performance-basics.md](../../docs/performance-basics.md) を参照。
 
-`Array.includes` は先頭から順に走査する O(n) 操作。これをループ内で呼ぶと外側 n 回 × 内側 n 回の二重ループになり O(n²) になる。
+n 件それぞれを長さ m の許可リストで検索すると、最悪 O(nm) になる。
 
-`Set` はハッシュ構造で O(1) の存在確認ができる。事前に 1 回 Set を構築すれば全体の計算量を O(n) に抑えられる。
+ハッシュベースの Set を一度構築すれば、平均 O(n+m) 時間と追加 O(m) 空間で処理できる。ECMAScript の要件は平均で劣線形のアクセス時間。`includes` と `Set.has` はどちらも SameValueZero で比較する。
 
-> **パターン「ループ内 線形探索」との違い**: 根本原因は同じ O(n²)。`includes` はプリミティブの**メンバーシップ確認**（Set で解決）、`find` はオブジェクトの**プロパティ引き当て**（Map で解決）という使い分け。
+> **パターン「ループ内 線形探索」との違い**: 根本原因は n 件ごとに最大 m 件を走査すること。`includes` はプリミティブの**メンバーシップ確認**（Set で解決）、`find` はオブジェクトの**プロパティ引き当て**（Map で解決）という使い分け。
 
 ## ❌ アンチパターン
 
 ```typescript
 for (const item of items) {
-  if (allowList.includes(item.role)) { // 毎回全走査 O(n)
+  if (allowList.includes(item.role)) { // 最悪 O(m)
     results.push(item);
   }
 }
@@ -39,35 +39,20 @@ for (const item of items) {
 
 ## ベンチマーク
 
-[計測ヘルパー](../../CONTRIBUTING.md#計測ヘルパー)を先に実行してから以下を実行してください。
+Node.js 22.18 以降で、リポジトリ直下から実行します。改善前後の結果が一致することを確認してから計測します。
 
-```javascript
-const N = 10_000;
-const allowList = Array.from({ length: N }, (_, i) => `role_${i}`);
-const items     = Array.from({ length: N }, (_, i) => ({ role: `role_${(i * 2) % N}` }));
-
-benchmark('❌ Array.includes ループ', () => {
-  const r = [];
-  for (const item of items) {
-    if (allowList.includes(item.role)) r.push(item);
-  }
-});
-benchmark('✅ Set.has ループ', () => {
-  const s = new Set(allowList);
-  const r = [];
-  for (const item of items) {
-    if (s.has(item.role)) r.push(item);
-  }
-});
+```sh
+node patterns/loop-includes-to-set/bench.ts
 ```
 
 ## 実測値（参考）
 
-| 条件 | 改善前 | 改善後 | 倍率 |
-|---|---|---|---|
-| n = 10,000 | 11.84 ms | 0.28 ms | **42.6×** |
+Apple M5 Pro、Docker の Linux arm64。Node.js 24.22.2（V8 13.6.233.17-node.63）と Node.js 22.23.4（V8 12.4.254.21-node.57）で各 2 回ウォームアップ + 10 回計測。
 
-> 結果は実行環境・ハードウェアによって変わります。同じ環境で改善前後を比較することが重要です。
+| Node.js・入力 | 改善前の中央値 ± 標準偏差 (ms) | 改善後の中央値 ± 標準偏差 (ms) | 中央値の比 |
+|---|---:|---:|---:|
+| 24.22.2、n=10,000 | 67.032 ± 4.065 | 0.536 ± 0.078 | 125.0× |
+| 22.23.4、n=10,000 | 56.814 ± 1.651 | 0.584 ± 0.142 | 97.3× |
 
 ## 注意・例外
 
@@ -88,6 +73,7 @@ benchmark('✅ Set.has ループ', () => {
 
 引用 Tier は [docs/primary-sources.md](../../docs/primary-sources.md) 体系に従う（Tier 1: 公式 / spec、Tier 2: engine team、Tier 3: 信頼性ある二次、Tier 4: 理論）。
 
+- [ECMA-262 の配列探索と Map / Set](../../docs/primary-sources.md#javascript-の仕様と計測) — 比較規則と平均アクセス時間の仕様要件
 - **Tier 4**: [Big-O Cheat Sheet](https://www.bigocheatsheet.com/) — Set の O(1) メンバーシップ確認の理論
 - **Tier 3**: [Loop Performance Anti-Patterns: 40-Repository Scan — stackinsight.dev](https://stackinsight.dev/blog/loop-performance-empirical-study) — 実コードベース 40 リポジトリでの出現頻度調査
 - [カテゴリ解説: 計算量の無駄 — docs/bottleneck-types.md](../../docs/bottleneck-types.md#計算量の無駄)
