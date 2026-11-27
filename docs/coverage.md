@@ -4,7 +4,7 @@
 
 | 調査で見つかった候補 | 原因 | 比較条件と掲載判断 |
 |---|---|---|
-| 深い OFFSET ページング | 計算量の無駄 | OFFSET とカーソル方式で同じページを取得し、先頭と深いページの走査量を比較する。 |
+| 深い OFFSET ページング | 計算量の無駄 | 同一ページ、同じ主キー索引で比較し、深いページで約 1,888× を確認。[パターン掲載済み](../patterns/postgres-offset-pagination/) |
 | ORM の N+1 | 非同期の直列化・余分なアクセス | 同じ親子データを 1+N 回で取得する場合と、バッチで取得する場合の発行 SQL 数と全体時間を比較。関連集約の比較とは別に測る。[Prisma Query Insights](https://docs.prisma.io/docs/query-insights) |
 | 検索条件の関数適用で通常の索引を使えない | 計算量の無駄 | 同じ `lower(email)` の比較条件で、通常索引と式インデックスを比較。まず [PostgreSQL seq scan](../patterns/postgres-seq-scan/) の派生として扱う。[PostgreSQL 16 式インデックス](https://www.postgresql.org/docs/16/indexes-expressional.html) |
 | 無索引の絞り込みとソート | 計算量の無駄 | `WHERE` と `ORDER BY` を満たす複合索引の有無を比較。読み取った行数、ソート方式、書き込み時のコストを記録。[SQLite Query Planning](https://sqlite.org/queryplanner.html)、[PostgreSQL 16 複合インデックス](https://www.postgresql.org/docs/16/indexes-multicolumn.html) |
