@@ -1,7 +1,7 @@
 -- setup.sql — PostgreSQL seq scan vs B-tree index ベンチマーク用 schema + seed
 --
 -- 実行:
---   docker exec -i bap-pg-bench psql -U postgres < setup.sql
+--   docker exec -i bap-pg-bench psql -v ON_ERROR_STOP=1 -U postgres < setup.sql
 --
 -- ─────────────────────────────────────────────────────────────────────────────
 -- 設計メモ
@@ -9,14 +9,13 @@
 -- 既存 DB と隔離するため新規 `bench_seqscan` DB を作成する。
 -- 1,000,000 行を generate_series でサーバサイド生成 (~1 秒)。
 -- city は 50 都市から %50 で振り分け、'tokyo' が hit する行は約 2% (= 20,000 行)
--- になり、Query B (low selectivity) で index が seq scan に勝てないケースを示せる。
+-- になり、Query B（2% 一致）では、1 件検索より索引の改善幅が小さい条件を比較できる。
 -- VACUUM ANALYZE で planner 統計を確定させる (これがないと planner が
 -- 過剰に index を避ける / 選ぶことがある)。
 -- ─────────────────────────────────────────────────────────────────────────────
 
 \c postgres
 
-DROP DATABASE IF EXISTS bench_seqscan;
 CREATE DATABASE bench_seqscan;
 
 \c bench_seqscan
